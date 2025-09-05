@@ -142,3 +142,40 @@
     transform: translateY(0);
   }
 }
+
+/* Minecraft-themed background */
+.minecraft-bg {
+  background: linear-gradient(135deg, hsl(237, 22%, 7%) 0%, hsl(237, 16%, 10%) 50%, hsl(237, 22%, 7%) 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 10s ease infinite;
+  position: relative;
+}
+
+.minecraft-bg::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 25% 25%, hsl(262, 83%, 67%) 0%, transparent 2%),
+    radial-gradient(circle at 75% 75%, hsl(217, 91%, 65%) 0%, transparent 2%),
+    radial-gradient(circle at 50% 50%, hsl(42, 92%, 56%) 0%, transparent 1%);
+  background-size: 100px 100px, 80px 80px, 120px 120px;
+  background-position: 0 0, 40px 40px, 20px 20px;
+  opacity: 0.03;
+  animation: twinkle 20s linear infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.05; }
+}

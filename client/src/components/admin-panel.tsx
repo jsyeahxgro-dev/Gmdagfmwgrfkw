@@ -17,15 +17,16 @@ import { z } from "zod";
 
 interface AdminPanelProps {
   onClose: () => void;
+  editingPlayer?: Player | null;
 }
 
 const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export function AdminPanel({ onClose }: AdminPanelProps) {
+export function AdminPanel({ onClose, editingPlayer: initialEditingPlayer }: AdminPanelProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(initialEditingPlayer || null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -143,6 +144,25 @@ export function AdminPanel({ onClose }: AdminPanelProps) {
       });
     },
   });
+
+  useEffect(() => {
+    if (initialEditingPlayer && isAuthenticated) {
+      setEditingPlayer(initialEditingPlayer);
+      playerForm.reset({
+        name: initialEditingPlayer.name,
+        title: initialEditingPlayer.title,
+        bridgeTier: initialEditingPlayer.bridgeTier,
+        skywarsTier: initialEditingPlayer.skywarsTier,
+        crystalTier: initialEditingPlayer.crystalTier,
+        midfightTier: initialEditingPlayer.midfightTier,
+        uhcTier: initialEditingPlayer.uhcTier,
+        nodebuffTier: initialEditingPlayer.nodebuffTier,
+        bedfightTier: initialEditingPlayer.bedfightTier,
+        sumoTier: initialEditingPlayer.sumoTier,
+        isRetired: initialEditingPlayer.isRetired,
+      });
+    }
+  }, [initialEditingPlayer, isAuthenticated]);
 
   const handleLogin = (data: { password: string }) => {
     loginMutation.mutate(data);

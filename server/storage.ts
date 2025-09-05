@@ -142,7 +142,19 @@ export class MemStorage implements IStorage {
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
     const id = randomUUID();
-    const player: Player = { ...insertPlayer, id };
+    const player: Player = { 
+      ...insertPlayer, 
+      id,
+      bridgeTier: insertPlayer.bridgeTier || "NR",
+      skywarsTier: insertPlayer.skywarsTier || "NR",
+      crystalTier: insertPlayer.crystalTier || "NR",
+      midfightTier: insertPlayer.midfightTier || "NR",
+      uhcTier: insertPlayer.uhcTier || "NR",
+      nodebuffTier: insertPlayer.nodebuffTier || "NR",
+      bedfightTier: insertPlayer.bedfightTier || "NR",
+      sumoTier: insertPlayer.sumoTier || "NR",
+      isRetired: insertPlayer.isRetired || false
+    };
     this.players.set(id, player);
     return player;
   }
