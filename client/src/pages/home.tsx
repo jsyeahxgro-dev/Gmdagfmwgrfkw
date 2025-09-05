@@ -6,16 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TierList } from "@/components/tier-list";
 import { Shield, Trophy, Users, Activity } from "lucide-react";
 import type { Player } from "@shared/schema";
+import mmcLogo from "@assets/a_dbfce8f408139faef5fd4fd4345def4b_1757091303032.gif";
 
 export default function Home() {
-  const [showRetired, setShowRetired] = useState(false);
-
   const { data: players = [], isLoading } = useQuery<Player[]>({
     queryKey: ["/api/players"],
   });
 
-  const activePlayers = players.filter(player => !player.isRetired);
-  const displayPlayers = showRetired ? players : activePlayers;
+  const activePlayers = players;
 
   const sTierPlayers = activePlayers.filter(player => 
     player.crystalTier === "HT1" || player.crystalTier === "LT1" ||
@@ -30,24 +28,27 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center border-2 border-primary/20 shadow-lg">
-                <span className="text-primary-foreground font-bold text-lg">MC</span>
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-primary/20 shadow-lg overflow-hidden">
+                <img 
+                  src={mmcLogo} 
+                  alt="MMC Logo" 
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground tracking-tight">MCBE TIERS</h1>
-                <p className="text-muted-foreground text-sm">Official Minecraft Bedrock PvP Community Rankings</p>
+                <h1 className="text-2xl font-bold text-foreground tracking-tight minecraft-title">MMC</h1>
+                <p className="text-muted-foreground text-sm">Official Minecraft Mobile Community Rankings</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowRetired(!showRetired)}
-                data-testid="toggle-retired-button"
-                className="bg-card/50 hover:bg-card/80 backdrop-blur-sm"
-              >
-                {showRetired ? "Hide Retired" : "Show Retired"}
-              </Button>
+              <Badge variant="secondary" className="bg-secondary/80 text-secondary-foreground">
+                <Trophy className="w-3 h-3 mr-1" />
+                {sTierPlayers} T1 Players
+              </Badge>
+              <Badge variant="secondary" className="bg-secondary/80 text-secondary-foreground">
+                <Activity className="w-3 h-3 mr-1" />
+                {activePlayers.length} Total Players
+              </Badge>
             </div>
           </div>
         </div>
@@ -90,7 +91,7 @@ export default function Home() {
                   <Activity className="w-5 h-5 text-secondary" />
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-secondary">8</div>
+                  <div className="text-xl font-bold text-secondary">6</div>
                   <div className="text-muted-foreground text-sm">Game Modes</div>
                 </div>
               </div>
@@ -112,7 +113,7 @@ export default function Home() {
         </div>
 
         {/* Tier List */}
-        <TierList players={displayPlayers} isLoading={isLoading} />
+        <TierList players={activePlayers} isLoading={isLoading} />
       </main>
     </div>
   );

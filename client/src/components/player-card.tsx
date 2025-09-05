@@ -8,12 +8,13 @@ import type { Player } from "@shared/schema";
 
 interface PlayerCardProps {
   player: Player;
+  ranking?: number;
   isAdmin?: boolean;
   onEdit?: (player: Player) => void;
   onDelete?: (id: string) => void;
 }
 
-export function PlayerCard({ player, isAdmin = false, onEdit, onDelete }: PlayerCardProps) {
+export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete }: PlayerCardProps) {
   const [imageError, setImageError] = useState(false);
   
   const getMinecraftSkinUrl = (playerName: string) => {
@@ -34,10 +35,10 @@ export function PlayerCard({ player, isAdmin = false, onEdit, onDelete }: Player
   };
 
   return (
-    <Card className="group relative hover:shadow-lg transition-all duration-300 bg-card/80 backdrop-blur-sm border-border/50" data-testid={`player-card-${player.id}`}>
-      <CardContent className="p-4">
+    <Card className="group relative hover:shadow-lg transition-all duration-300 bg-card/80 backdrop-blur-sm border-border/50 hover:bg-card/90" data-testid={`player-card-${player.id}`}>
+      <CardContent className="p-3">
         <div className="flex items-center space-x-3 mb-2">
-          <Avatar className="w-12 h-12 border-2 border-border">
+          <Avatar className="w-10 h-10 border-2 border-border/30">
             {!imageError ? (
               <AvatarImage 
                 src={getMinecraftSkinUrl(player.name)}
@@ -51,12 +52,39 @@ export function PlayerCard({ player, isAdmin = false, onEdit, onDelete }: Player
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-foreground truncate" data-testid={`player-name-${player.id}`}>
-              {player.name}
-            </p>
+            <div className="flex items-center gap-2">
+              {ranking && (
+                <span className="minecraft-font text-xs text-primary font-bold">
+                  #{ranking}
+                </span>
+              )}
+              <p className="font-semibold text-foreground truncate" data-testid={`player-name-${player.id}`}>
+                {player.name}
+              </p>
+            </div>
             <p className="text-xs text-muted-foreground truncate">
               {player.title}
             </p>
+            {/* Show gamemode tiers in overall ranking */}
+            {window.location.pathname === "/" && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {player.skywarsTier !== "NR" && (
+                  <Badge variant="outline" className="text-xs px-1 py-0">
+                    Sky: {player.skywarsTier}
+                  </Badge>
+                )}
+                {player.midfightTier !== "NR" && (
+                  <Badge variant="outline" className="text-xs px-1 py-0">
+                    Mid: {player.midfightTier}
+                  </Badge>
+                )}
+                {player.nodebuffTier !== "NR" && (
+                  <Badge variant="outline" className="text-xs px-1 py-0">
+                    NoDb: {player.nodebuffTier}
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

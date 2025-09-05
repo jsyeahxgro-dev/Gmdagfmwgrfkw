@@ -15,7 +15,6 @@ export const players = pgTable("players", {
   nodebuffTier: text("nodebuff_tier").notNull().default("NR"),
   bedfightTier: text("bedfight_tier").notNull().default("NR"),
   sumoTier: text("sumo_tier").notNull().default("NR"),
-  isRetired: boolean("is_retired").notNull().default(false),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).omit({
@@ -32,12 +31,9 @@ export const gameModes = [
   { key: 'overall', name: 'Overall', icon: '🏆' },
   { key: 'skywars', name: 'Skywars', icon: '☁️' },
   { key: 'midfight', name: 'Midfight', icon: '⚔️' },
-  { key: 'bridge', name: 'Bridge', icon: '🌉' },
-  { key: 'crystal', name: 'Crystal', icon: '💎' },
-  { key: 'sumo', name: 'Sumo', icon: '🥊' },
-  { key: 'nodebuff', name: 'Nodebuff', icon: '🧪' },
+  { key: 'nodebuff', name: 'Nodebuff', icon: '🛡️' },
   { key: 'bedfight', name: 'Bedfight', icon: '🛏️' },
-  { key: 'uhc', name: 'UHC', icon: '❤️' }
+  { key: 'uhc', name: 'UHC', icon: '💀' }
 ] as const;
 
 export type GameMode = typeof gameModes[number]['key'];

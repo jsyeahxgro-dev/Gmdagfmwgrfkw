@@ -159,7 +159,6 @@ export function AdminPanel({ onClose, editingPlayer: initialEditingPlayer }: Adm
         nodebuffTier: initialEditingPlayer.nodebuffTier,
         bedfightTier: initialEditingPlayer.bedfightTier,
         sumoTier: initialEditingPlayer.sumoTier,
-        isRetired: initialEditingPlayer.isRetired,
       });
     }
   }, [initialEditingPlayer, isAuthenticated]);

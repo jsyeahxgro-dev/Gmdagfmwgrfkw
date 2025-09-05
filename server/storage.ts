@@ -153,7 +153,7 @@ export class MemStorage implements IStorage {
       nodebuffTier: insertPlayer.nodebuffTier || "NR",
       bedfightTier: insertPlayer.bedfightTier || "NR",
       sumoTier: insertPlayer.sumoTier || "NR",
-      isRetired: insertPlayer.isRetired || false
+      isRetired: false
     };
     this.players.set(id, player);
     return player;

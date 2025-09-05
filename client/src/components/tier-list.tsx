@@ -120,7 +120,18 @@ export function TierList({ players, isLoading }: TierListProps) {
         <div className="flex gap-2">
           <Button
             variant={isAdminMode ? "default" : "outline"}
-            onClick={() => setIsAdminMode(!isAdminMode)}
+            onClick={() => {
+              if (!isAdminMode) {
+                const password = prompt("Enter admin password:");
+                if (password === "admin123") {
+                  setIsAdminMode(true);
+                } else if (password !== null) {
+                  alert("Incorrect password!");
+                }
+              } else {
+                setIsAdminMode(false);
+              }
+            }}
             data-testid="toggle-admin-mode"
           >
             <Settings className="w-4 h-4 mr-2" />
@@ -140,8 +151,8 @@ export function TierList({ players, isLoading }: TierListProps) {
 
       {/* Game Mode Tabs */}
       <Tabs value={selectedGameMode} onValueChange={(value) => setSelectedGameMode(value as GameMode)} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-9 bg-card/50 backdrop-blur-sm">
-          {gameModes.map((gameMode) => (
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-card/50 backdrop-blur-sm">
+          {(gameModes as readonly any[]).map((gameMode: any) => (
             <TabsTrigger
               key={gameMode.key}
               value={gameMode.key}
@@ -154,7 +165,7 @@ export function TierList({ players, isLoading }: TierListProps) {
           ))}
         </TabsList>
 
-        {gameModes.map((gameMode) => (
+        {(gameModes as readonly any[]).map((gameMode: any) => (
           <TabsContent key={gameMode.key} value={gameMode.key} className="space-y-6">
             {/* Tier Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -168,7 +179,7 @@ export function TierList({ players, isLoading }: TierListProps) {
                   >
                     <CardHeader className="pb-3">
                       <div className={`text-center py-3 px-4 rounded-lg bg-gradient-to-r ${tierLevel.color}`}>
-                        <h3 className={`font-bold text-lg ${tierLevel.textColor}`}>
+                        <h3 className={`font-bold text-lg ${tierLevel.textColor} tier-title`}>
                           {tierLevel.key}
                         </h3>
                         <p className={`text-sm ${tierLevel.textColor} opacity-90`}>
@@ -181,10 +192,11 @@ export function TierList({ players, isLoading }: TierListProps) {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {tieredPlayers.length > 0 ? (
-                        tieredPlayers.map((player) => (
+                        tieredPlayers.map((player, index) => (
                           <PlayerCard
                             key={player.id}
                             player={player}
+                            ranking={index + 1}
                             isAdmin={isAdminMode}
                             onEdit={(player) => {
                               setEditingPlayer(player);
