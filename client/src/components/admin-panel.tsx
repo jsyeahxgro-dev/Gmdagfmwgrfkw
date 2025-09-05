@@ -17,6 +17,7 @@ import { z } from "zod";
 
 interface AdminPanelProps {
   onClose: () => void;
+  onAdminLogin?: () => void;
   editingPlayer?: Player | null;
 }
 
@@ -24,7 +25,7 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export function AdminPanel({ onClose, editingPlayer: initialEditingPlayer }: AdminPanelProps) {
+export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditingPlayer }: AdminPanelProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(initialEditingPlayer || null);
   const { toast } = useToast();
@@ -61,20 +62,24 @@ export function AdminPanel({ onClose, editingPlayer: initialEditingPlayer }: Adm
 
   const loginMutation = useMutation({
     mutationFn: async (data: { password: string }) => {
-      const response = await apiRequest("POST", "/api/admin/auth", data);
-      return response.json();
+      if (data.password === "mmcadminpaneltwin123") {
+        return { success: true };
+      } else {
+        throw new Error("Invalid password");
+      }
     },
     onSuccess: () => {
       setIsAuthenticated(true);
+      onAdminLogin?.();
       toast({
         title: "Login successful",
-        description: "Welcome to the admin panel",
+        description: "Welcome to MMC Admin Panel",
       });
     },
     onError: () => {
       toast({
         title: "Login failed",
-        description: "Invalid password",
+        description: "Invalid admin password",
         variant: "destructive",
       });
     },
@@ -319,8 +324,8 @@ export function AdminPanel({ onClose, editingPlayer: initialEditingPlayer }: Adm
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {(["bridgeTier", "skywarsTier", "crystalTier", "midfightTier", "uhcTier", "nodebuffTier", "bedfightTier", "sumoTier"] as const).map((field) => (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {(["skywarsTier", "midfightTier", "uhcTier", "nodebuffTier", "bedfightTier"] as const).map((field) => (
                       <FormField
                         key={field}
                         control={playerForm.control}
@@ -351,22 +356,42 @@ export function AdminPanel({ onClose, editingPlayer: initialEditingPlayer }: Adm
                     ))}
                   </div>
 
-                  <div className="flex space-x-4">
-                    <Button
-                      type="submit"
-                      disabled={createPlayerMutation.isPending || updatePlayerMutation.isPending}
-                      data-testid="save-player-button"
-                    >
-                      {editingPlayer ? "Update Player" : "Add Player"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleClearForm}
-                      data-testid="clear-form-button"
-                    >
-                      Clear Form
-                    </Button>
+                  <div className="space-y-4">
+                    <div className="flex space-x-4">
+                      <Button
+                        type="submit"
+                        disabled={createPlayerMutation.isPending || updatePlayerMutation.isPending}
+                        data-testid="save-player-button"
+                      >
+                        {editingPlayer ? "Update Player" : "Add Player"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleClearForm}
+                        data-testid="clear-form-button"
+                      >
+                        Clear Form
+                      </Button>
+                    </div>
+                    
+                    {/* Skin Customization */}
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium text-sm mb-2">Skin Preview</h4>
+                      <div className="flex items-center space-x-3">
+                        <img 
+                          src={`https://mc-heads.net/avatar/${playerForm.watch('name') || 'Steve'}/64`}
+                          alt="Skin preview"
+                          className="w-12 h-12 border rounded"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://mc-heads.net/avatar/Steve/64';
+                          }}
+                        />
+                        <div className="text-sm text-muted-foreground">
+                          Skin automatically loaded from player name
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </form>
               </Form>

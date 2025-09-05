@@ -203,3 +203,34 @@
   font-size: 0.875rem;
   text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
 }
+
+/* MCBE-style ranking colors */
+.rank-1 {
+  background: linear-gradient(45deg, #FFD700, #FFA500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 2px 2px 4px rgba(255, 215, 0, 0.3);
+  font-family: 'Press Start 2P', cursive;
+  font-weight: bold;
+}
+
+.rank-2 {
+  background: linear-gradient(45deg, #C0C0C0, #808080);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 2px 2px 4px rgba(192, 192, 192, 0.3);
+  font-family: 'Press Start 2P', cursive;
+  font-weight: bold;
+}
+
+.rank-3 {
+  background: linear-gradient(45deg, #CD7F32, #8B4513);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 2px 2px 4px rgba(205, 127, 50, 0.3);
+  font-family: 'Press Start 2P', cursive;
+  font-weight: bold;
+}

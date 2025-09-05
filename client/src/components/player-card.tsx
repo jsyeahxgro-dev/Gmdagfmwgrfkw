@@ -54,7 +54,12 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               {ranking && (
-                <span className="minecraft-font text-xs text-primary font-bold">
+                <span className={`text-sm font-bold ${
+                  ranking === 1 ? 'rank-1' : 
+                  ranking === 2 ? 'rank-2' : 
+                  ranking === 3 ? 'rank-3' : 
+                  'minecraft-font text-primary'
+                }`}>
                   #{ranking}
                 </span>
               )}

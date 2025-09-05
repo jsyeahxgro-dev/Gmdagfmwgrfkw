@@ -22,6 +22,11 @@ export function TierList({ players, isLoading }: TierListProps) {
   const [selectedGameMode, setSelectedGameMode] = useState<GameMode>("overall");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  
+  // Handle admin mode state from admin panel
+  const handleAdminLogin = () => {
+    setIsAdminMode(true);
+  };
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -122,12 +127,7 @@ export function TierList({ players, isLoading }: TierListProps) {
             variant={isAdminMode ? "default" : "outline"}
             onClick={() => {
               if (!isAdminMode) {
-                const password = prompt("Enter admin password:");
-                if (password === "admin123") {
-                  setIsAdminMode(true);
-                } else if (password !== null) {
-                  alert("Incorrect password!");
-                }
+                setShowAdminPanel(true);
               } else {
                 setIsAdminMode(false);
               }
@@ -226,6 +226,7 @@ export function TierList({ players, isLoading }: TierListProps) {
             setShowAdminPanel(false);
             setEditingPlayer(null);
           }}
+          onAdminLogin={handleAdminLogin}
           editingPlayer={editingPlayer}
         />
       )}
