@@ -176,9 +176,9 @@ export function TierList({ players, isLoading }: TierListProps) {
                   })
                   .map((player, index) => (
                     <div key={player.id} className={`flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors ${
-                      index === 0 ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/20 dark:to-yellow-800/20 shimmer-gold' :
-                      index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-900/20 dark:to-gray-800/20 shimmer-silver' :
-                      index === 2 ? 'bg-gradient-to-r from-orange-100 to-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 shimmer-bronze' :
+                      index === 0 ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/20 dark:to-yellow-800/20 shine-gold' :
+                      index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-900/20 dark:to-gray-800/20 shine-silver' :
+                      index === 2 ? 'bg-gradient-to-r from-orange-100 to-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 shine-bronze' :
                       ''
                     }`} data-testid={`leaderboard-player-${player.id}`}>
                       {/* Ranking */}
@@ -208,33 +208,42 @@ export function TierList({ players, isLoading }: TierListProps) {
                         </div>
                       </div>
                       
-                      {/* Tier Badges */}
-                      <div className="flex gap-2 flex-wrap">
-                        {[
-                          { key: 'skywars', tier: player.skywarsTier, abbr: 'SW' },
-                          { key: 'midfight', tier: player.midfightTier, abbr: 'Midf' },
-                          { key: 'nodebuff', tier: player.nodebuffTier, abbr: 'NoDb' },
-                          { key: 'bedfight', tier: player.bedfightTier, abbr: 'Bed' },
-                          { key: 'uhc', tier: player.uhcTier, abbr: 'UHC' }
-                        ].map(mode => {
-                          if (!mode.tier || mode.tier === 'NR') {
+                      {/* Overall Tier and Mode Badges */}
+                      <div className="flex flex-col items-end gap-2">
+                        {/* Overall Tier */}
+                        <div className="text-sm font-bold text-muted-foreground">
+                          Overall Tier: <span className="text-foreground">{getTierForGameMode(player, 'overall')}</span>
+                        </div>
+                        
+                        {/* Gamemode Badges */}
+                        <div className="flex gap-2 flex-wrap">
+                          {[
+                            { key: 'skywars', tier: player.skywarsTier, abbr: 'SW', name: 'Skywars' },
+                            { key: 'midfight', tier: player.midfightTier, abbr: 'Midf', name: 'Midfight' },
+                            { key: 'nodebuff', tier: player.nodebuffTier, abbr: 'NoDb', name: 'Nodebuff' },
+                            { key: 'bedfight', tier: player.bedfightTier, abbr: 'Bed', name: 'Bedfight' },
+                            { key: 'uhc', tier: player.uhcTier, abbr: 'UHC', name: 'UHC' }
+                          ].map(mode => {
+                            if (!mode.tier || mode.tier === 'NR') {
+                              return (
+                                <div key={mode.key} className="px-2 py-1 rounded bg-gray-500 text-xs font-bold text-white" title={`${mode.name}: Not Ranked`}>
+                                  {mode.abbr}: NR
+                                </div>
+                              );
+                            }
+                            
+                            const tierColor = mode.tier.startsWith('HT') ? 'bg-red-500' :
+                                            mode.tier.startsWith('MIDT') ? 'bg-orange-500' :
+                                            mode.tier.startsWith('LT') ? 'bg-blue-500' : 'bg-gray-500';
+                            
                             return (
-                              <div key={mode.key} className="px-2 py-1 rounded bg-gray-500 text-xs font-bold text-white" title={`${mode.abbr}: Not Ranked`}>
-                                {mode.abbr}
+                              <div key={mode.key} className={`px-2 py-1 rounded ${tierColor} text-xs font-bold text-white`} title={`${mode.name}: ${mode.tier}`}>
+                                {mode.abbr}: {mode.tier}
                               </div>
                             );
-                          }
-                          
-                          const tierColor = mode.tier.startsWith('HT') ? 'bg-red-500' :
-                                          mode.tier.startsWith('MIDT') ? 'bg-orange-500' :
-                                          mode.tier.startsWith('LT') ? 'bg-blue-500' : 'bg-gray-500';
-                          
-                          return (
-                            <div key={mode.key} className={`px-2 py-1 rounded ${tierColor} text-xs font-bold text-white`} title={`${mode.abbr}: ${mode.tier}`}>
-                              {mode.abbr}
-                            </div>
-                          );
-                        })}
+                          })}
+                        </div>
+                      </div>
                       </div>
                       
                       {/* Admin Actions */}
