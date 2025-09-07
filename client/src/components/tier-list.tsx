@@ -11,7 +11,7 @@ import { AdminPanel } from "./admin-panel";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Player, GameMode } from "@shared/schema";
-import { gameModes, tierLevels, getTierColor } from "@shared/schema";
+import { gameModes, tierLevels, getTierColor, calculatePlayerPoints } from "@shared/schema";
 
 interface TierListProps {
   players: Player[];
@@ -215,9 +215,9 @@ export function TierList({ players, isLoading }: TierListProps) {
                       
                       {/* Overall Tier and Mode Badges */}
                       <div className="flex flex-col items-end gap-2">
-                        {/* Overall Tier */}
+                        {/* Points */}
                         <div className="text-sm font-bold text-muted-foreground">
-                          Overall Tier: <span className="text-foreground">{getTierForGameMode(player, 'overall')}</span>
+                          Points: <span className="text-foreground">{calculatePlayerPoints(player)}</span>
                         </div>
                         
                         {/* Gamemode Badges */}
