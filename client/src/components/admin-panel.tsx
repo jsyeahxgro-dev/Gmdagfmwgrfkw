@@ -1052,35 +1052,37 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                             
                             {/* Admin Actions */}
                             <div className="flex gap-2">
-                              {/* Reorder Buttons */}
-                              <div className="flex flex-col gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePlayerReorder(player, 'up', sortedPlayers, index);
-                                  }}
-                                  disabled={index === 0}
-                                  className="w-8 h-6 p-0"
-                                  data-testid={`admin-reorder-up-${player.id}`}
-                                >
-                                  <ChevronUp className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePlayerReorder(player, 'down', sortedPlayers, index);
-                                  }}
-                                  disabled={index === sortedPlayers.length - 1}
-                                  className="w-8 h-6 p-0"
-                                  data-testid={`admin-reorder-down-${player.id}`}
-                                >
-                                  <ChevronDown className="w-3 h-3" />
-                                </Button>
-                              </div>
+                              {/* Reorder Buttons - Only show in gamemode views, not in overall */}
+                              {selectedGameMode !== "overall" && (
+                                <div className="flex flex-col gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handlePlayerReorder(player, 'up', sortedPlayers, index);
+                                    }}
+                                    disabled={index === 0}
+                                    className="w-8 h-6 p-0"
+                                    data-testid={`admin-reorder-up-${player.id}`}
+                                  >
+                                    <ChevronUp className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handlePlayerReorder(player, 'down', sortedPlayers, index);
+                                    }}
+                                    disabled={index === sortedPlayers.length - 1}
+                                    className="w-8 h-6 p-0"
+                                    data-testid={`admin-reorder-down-${player.id}`}
+                                  >
+                                    <ChevronDown className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              )}
                               
                               <Button
                                 size="sm"
