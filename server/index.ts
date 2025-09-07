@@ -1,17 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, log } from "./vite";
 import path from "path";
 import { fileURLToPath } from "url";
+import { registerRoutes } from "./routes";
+import { setupVite, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
-  const pathReq = req.path;
+  const pathName = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -22,8 +21,8 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (pathReq.startsWith("/api")) {
-      let logLine = `${req.method} ${pathReq} ${res.statusCode} in ${duration}ms`;
+    if (pathName.startsWith("/api")) {
+      let logLine = `${req.method} ${pathName} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
@@ -50,22 +49,20 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // ✅ Development vs Production
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    // ✅ Serve Vite build in production
+    // ✅ Serve built Vite files in production
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
 
-    app.use(express.static(path.join(__dirname, "../dist")));
+    app.use(express.static(path.join(__dirname, "dist")));
 
     app.get("*", (req, res) => {
-      res.sendFile(path.join(__dirname, "../dist/index.html"));
+      res.sendFile(path.join(__dirname, "dist", "index.html"));
     });
   }
 
-  // ✅ Start the server
   const port = parseInt(process.env.PORT || "5000", 10);
   server.listen(
     {
@@ -74,7 +71,7 @@ app.use((req, res, next) => {
       reusePort: true,
     },
     () => {
-      log(`✅ Serving on port ${port}`);
+      log(`serving on port ${port}`);
     }
   );
 })();
