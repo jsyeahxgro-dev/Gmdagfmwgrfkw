@@ -6,7 +6,6 @@ import { z } from "zod";
 export const players = pgTable("players", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  title: text("title").notNull(),
   skywarsTier: text("skywars_tier").notNull().default("NR"),
   midfightTier: text("midfight_tier").notNull().default("NR"),
   uhcTier: text("uhc_tier").notNull().default("NR"),
@@ -88,11 +87,9 @@ export const calculatePlayerPoints = (player: Player): number => {
 
 export const getTitleFromPoints = (points: number): string => {
   if (points >= 450) return 'Combat Grandmaster';
-  if (points >= 375) return 'Combat Master';
-  if (points >= 300) return 'Combat Ace';
-  if (points >= 225) return 'Combat Elite';
+  if (points >= 350) return 'Combat Master';
+  if (points >= 250) return 'Combat Ace';
   if (points >= 150) return 'Combat Specialist';
-  if (points >= 100) return 'Combat Cadet';
-  if (points >= 50) return 'Combat Novice';
+  if (points >= 50) return 'Combat Cadet';
   return 'Rookie';
 };

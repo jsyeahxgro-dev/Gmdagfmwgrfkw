@@ -12,7 +12,7 @@ import { AdminPanel } from "./admin-panel";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Player, GameMode } from "@shared/schema";
-import { gameModes, tierLevels, getTierColor, calculatePlayerPoints } from "@shared/schema";
+import { gameModes, tierLevels, getTierColor, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
 import {
   DndContext,
   DragEndEvent,
@@ -471,7 +471,7 @@ export function TierList({ players, isLoading }: TierListProps) {
                         </Avatar>
                         <div>
                           <h3 className="font-semibold text-lg">{player.name}</h3>
-                          <p className="text-sm text-muted-foreground">{player.title}</p>
+                          <p className="text-sm text-muted-foreground">{getTitleFromPoints(calculatePlayerPoints(player))}</p>
                         </div>
                       </div>
                       

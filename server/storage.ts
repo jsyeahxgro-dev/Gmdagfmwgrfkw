@@ -26,7 +26,7 @@ export class MemStorage implements IStorage {
       // S Tier Players
       {
         name: "D3j4411",
-        title: "Combat Grandmaster",
+
         skywarsTier: "HT1",
         midfightTier: "HT1",
         uhcTier: "HT2",
@@ -35,7 +35,7 @@ export class MemStorage implements IStorage {
       },
       {
         name: "Velfair",
-        title: "Combat Grandmaster",
+
         skywarsTier: "HT1",
         midfightTier: "HT2",
         uhcTier: "HT1",
@@ -44,7 +44,7 @@ export class MemStorage implements IStorage {
       },
       {
         name: "DR0IDv",
-        title: "Combat Master",
+
         skywarsTier: "HT1",
         midfightTier: "NR",
         uhcTier: "HT2",
@@ -53,7 +53,7 @@ export class MemStorage implements IStorage {
       },
       {
         name: "Torqueyckpio",
-        title: "Combat Ace",
+
         skywarsTier: "MIDT1",
         midfightTier: "HT2",
         uhcTier: "HT3",
@@ -62,7 +62,7 @@ export class MemStorage implements IStorage {
       },
       {
         name: "RivaV0cals",
-        title: "Combat Master",
+
         skywarsTier: "HT1",
         midfightTier: "HT3",
         uhcTier: "HT2",
@@ -72,7 +72,7 @@ export class MemStorage implements IStorage {
       // A Tier Players  
       {
         name: "ItzAaronHi",
-        title: "Combat Ace",
+
         skywarsTier: "HT2",
         midfightTier: "MIDT2",
         uhcTier: "LT1",
@@ -81,7 +81,7 @@ export class MemStorage implements IStorage {
       },
       {
         name: "zAmqni",
-        title: "Combat Elite",
+
         skywarsTier: "HT2",
         midfightTier: "NR",
         uhcTier: "MIDT1",
@@ -90,7 +90,7 @@ export class MemStorage implements IStorage {
       },
       {
         name: "Mikeyandroid",
-        title: "Combat Specialist", 
+ 
         skywarsTier: "MIDT2",
         midfightTier: "HT3",
         uhcTier: "LT2",
@@ -100,7 +100,7 @@ export class MemStorage implements IStorage {
       // B Tier Players
       {
         name: "EletricHayden",
-        title: "Combat Specialist",
+
         skywarsTier: "HT3",
         midfightTier: "MIDT3",
         uhcTier: "NR",
@@ -109,7 +109,7 @@ export class MemStorage implements IStorage {
       },
       {
         name: "FlamePvPs",
-        title: "Combat Cadet",
+
         skywarsTier: "MIDT3",
         midfightTier: "LT2",
         uhcTier: "LT3",
@@ -119,7 +119,7 @@ export class MemStorage implements IStorage {
       // C Tier Players
       {
         name: "ComicBiscuit778",
-        title: "Combat Cadet",
+
         skywarsTier: "LT1",
         midfightTier: "LT4",
         uhcTier: "NR",
@@ -128,7 +128,7 @@ export class MemStorage implements IStorage {
       },
       {
         name: "EfrazBR",
-        title: "Combat Novice",
+
         skywarsTier: "NR",
         midfightTier: "NR",
         uhcTier: "NR",
@@ -229,7 +229,7 @@ export class DbStorage implements IStorage {
       // S Tier Players
       {
         name: "D3j4411",
-        title: "Combat Grandmaster",
+
         skywarsTier: "HT1",
         midfightTier: "HT1",
         uhcTier: "HT2",
@@ -238,7 +238,7 @@ export class DbStorage implements IStorage {
       },
       {
         name: "Velfair",
-        title: "Combat Grandmaster",
+
         skywarsTier: "HT1",
         midfightTier: "HT2",
         uhcTier: "HT1",
@@ -247,7 +247,7 @@ export class DbStorage implements IStorage {
       },
       {
         name: "DR0IDv",
-        title: "Combat Master",
+
         skywarsTier: "HT1",
         midfightTier: "NR",
         uhcTier: "HT2",
@@ -256,7 +256,7 @@ export class DbStorage implements IStorage {
       },
       {
         name: "Torqueyckpio",
-        title: "Combat Ace",
+
         skywarsTier: "MIDT1",
         midfightTier: "HT2",
         uhcTier: "HT3",
@@ -265,7 +265,7 @@ export class DbStorage implements IStorage {
       },
       {
         name: "RivaV0cals",
-        title: "Combat Master",
+
         skywarsTier: "HT1",
         midfightTier: "HT3",
         uhcTier: "HT2",
@@ -275,7 +275,7 @@ export class DbStorage implements IStorage {
       // A Tier Players  
       {
         name: "ItzAaronHi",
-        title: "Combat Ace",
+
         skywarsTier: "HT2",
         midfightTier: "MIDT2",
         uhcTier: "LT1",
@@ -284,7 +284,7 @@ export class DbStorage implements IStorage {
       },
       {
         name: "zAmqni",
-        title: "Combat Elite",
+
         skywarsTier: "HT2",
         midfightTier: "NR",
         uhcTier: "MIDT1",
@@ -293,7 +293,7 @@ export class DbStorage implements IStorage {
       },
       {
         name: "Mikeyandroid",
-        title: "Combat Specialist", 
+ 
         skywarsTier: "MIDT2",
         midfightTier: "HT3",
         uhcTier: "LT2",
@@ -303,7 +303,7 @@ export class DbStorage implements IStorage {
       // B Tier Players
       {
         name: "EletricHayden",
-        title: "Combat Specialist",
+
         skywarsTier: "HT3",
         midfightTier: "MIDT3",
         uhcTier: "NR",
@@ -312,7 +312,7 @@ export class DbStorage implements IStorage {
       },
       {
         name: "FlamePvPs",
-        title: "Combat Cadet",
+
         skywarsTier: "MIDT3",
         midfightTier: "LT2",
         uhcTier: "LT3",
@@ -322,7 +322,7 @@ export class DbStorage implements IStorage {
       // C Tier Players
       {
         name: "ComicBiscuit778",
-        title: "Combat Cadet",
+
         skywarsTier: "LT1",
         midfightTier: "LT4",
         uhcTier: "NR",
@@ -331,7 +331,7 @@ export class DbStorage implements IStorage {
       },
       {
         name: "EfrazBR",
-        title: "Combat Novice",
+
         skywarsTier: "NR",
         midfightTier: "NR",
         uhcTier: "NR",

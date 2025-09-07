@@ -160,7 +160,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
               </p>
             </div>
             <p className="text-xs text-muted-foreground truncate">
-              {player.title}
+              {getTitleFromPoints(calculatePlayerPoints(player))}
             </p>
             {/* Show gamemode tiers in overall ranking only */}
             {!simplified && (
