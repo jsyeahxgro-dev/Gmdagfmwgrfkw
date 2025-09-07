@@ -137,8 +137,8 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
       form.reset();
       onSuccess();
       toast({
-        title: "Player added",
-        description: "Player has been successfully added",
+        title: "Player updated",
+        description: "Player tier has been successfully updated",
       });
     },
     onError: () => {

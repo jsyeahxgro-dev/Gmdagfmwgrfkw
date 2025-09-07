@@ -21,7 +21,7 @@ export const insertPlayerSchema = createInsertSchema(players).omit({
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type Player = typeof players.$inferSelect;
 
-export const tierOptions = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"] as const;
+export const tierOptions = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5", "NR"] as const;
 export const titleOptions = [
   "Rookie",
   "Combat Novice", 
@@ -61,11 +61,11 @@ export const getTierColor = (tier: string) => {
 
 // Points system mapping
 export const tierPoints = {
-  'HT1': 100, 'MIDT1': 80, 'LT1': 60,
-  'HT2': 60,  'MIDT2': 45, 'LT2': 30,
-  'HT3': 30,  'MIDT3': 20, 'LT3': 10,
-  'HT4': 15,  'MIDT4': 10, 'LT4': 5,
-  'HT5': 8,   'MIDT5': 5,  'LT5': 2,
+  'HT1': 100, 'MT1': 80, 'LT1': 60,
+  'HT2': 70,  'MT2': 60, 'LT2': 50,
+  'HT3': 40,  'MT3': 35, 'LT3': 30,
+  'HT4': 20,  'MT4': 15, 'LT4': 10,
+  'HT5': 8,   'MT5': 6,  'LT5': 4,
   'NR': 0
 } as const;
 

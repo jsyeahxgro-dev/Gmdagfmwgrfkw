@@ -28,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create new player
+  // Create new player or update existing player tier
   app.post("/api/players", async (req, res) => {
     try {
       const validatedData = insertPlayerSchema.parse(req.body);
@@ -36,7 +36,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if player name already exists
       const existingPlayer = await storage.getPlayerByName(validatedData.name);
       if (existingPlayer) {
-        return res.status(400).json({ error: "Player with this name already exists" });
+        // Update existing player with new tier data, keeping existing tiers intact
+        const updatedPlayer = await storage.updatePlayer(existingPlayer.id, validatedData);
+        return res.status(200).json(updatedPlayer);
       }
 
       const player = await storage.createPlayer(validatedData);
@@ -45,7 +47,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid player data", details: error.errors });
       }
-      res.status(500).json({ error: "Failed to create player" });
+      res.status(500).json({ error: "Failed to create/update player" });
     }
   });
 
