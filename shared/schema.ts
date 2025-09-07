@@ -29,11 +29,14 @@ export const titleOptions = ["Combat Grandmaster", "Combat Master", "Combat Ace"
 
 export const gameModes = [
   { key: 'overall', name: 'Overall', icon: '🏆', abbr: 'Overall' },
+  { key: 'bridge', name: 'Bridge', icon: '🌉', abbr: 'Bridge' },
   { key: 'skywars', name: 'Skywars', icon: '☁️', abbr: 'SW' },
+  { key: 'crystal', name: 'Crystal', icon: '💎', abbr: 'Crystal' },
   { key: 'midfight', name: 'Midfight', icon: '⚔️', abbr: 'Midf' },
+  { key: 'uhc', name: 'UHC', icon: '💀', abbr: 'UHC' },
   { key: 'nodebuff', name: 'Nodebuff', icon: '🛡️', abbr: 'NoDb' },
   { key: 'bedfight', name: 'Bedfight', icon: '🛏️', abbr: 'Bed' },
-  { key: 'uhc', name: 'UHC', icon: '💀', abbr: 'UHC' }
+  { key: 'sumo', name: 'Sumo', icon: '🥋', abbr: 'Sumo' }
 ] as const;
 
 export type GameMode = typeof gameModes[number]['key'];
