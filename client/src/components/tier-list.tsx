@@ -163,7 +163,7 @@ export function TierList({ players, isLoading }: TierListProps) {
             <TabsTrigger
               key={gameMode.key}
               value={gameMode.key}
-              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-3"
+              className="flex items-center gap-2 gamemode-tab-inactive data-[state=active]:gamemode-tab-active px-4 py-3 font-medium"
               data-testid={`gamemode-tab-${gameMode.key}`}
             >
               <span className="text-sm">{gameMode.icon}</span>
