@@ -255,18 +255,6 @@ export function TierList({ players, isLoading }: TierListProps) {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingPlayer(player);
-                              setShowAdminPanel(true);
-                            }}
-                            data-testid={`edit-player-${player.id}`}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
                             variant="destructive"
                             onClick={(e) => {
                               e.stopPropagation();
