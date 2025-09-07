@@ -57,7 +57,6 @@ interface DeleteConfirmDialogProps {
 
 const addPlayerSchema = z.object({
   name: z.string().min(1, "Player name is required"),
-  title: z.string().min(1, "Title is required"),
   gameMode: z.string().min(1, "Game mode is required"),
   tier: z.string().min(1, "Tier is required"),
 });
@@ -93,7 +92,6 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
     resolver: zodResolver(addPlayerSchema),
     defaultValues: {
       name: "",
-      title: titleOptions[0] || "Rookie",
       gameMode: "skywars",
       tier: "LT5",
     },
@@ -103,7 +101,7 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
     mutationFn: async (data: AddPlayerData) => {
       const playerData: InsertPlayer = {
         name: data.name,
-        title: data.title, // Will be overridden below with calculated title
+        title: "Rookie", // Will be overridden below with calculated title
         skywarsTier: "NR",
         midfightTier: "NR",
         uhcTier: "NR",
@@ -173,30 +171,6 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
                   <FormControl>
                     <Input {...field} data-testid="add-player-name-input" />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Combat Title</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="add-player-title-select">
-                        <SelectValue placeholder="Select title" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {titleOptions.map((title) => (
-                        <SelectItem key={title} value={title}>
-                          {title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
