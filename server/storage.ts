@@ -1,8 +1,7 @@
 import { type Player, type InsertPlayer, players } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
 import { eq } from "drizzle-orm";
+import { db } from "./db";
 
 export interface IStorage {
   getPlayer(id: string): Promise<Player | undefined>;
@@ -209,17 +208,13 @@ export class MemStorage implements IStorage {
 }
 
 export class DbStorage implements IStorage {
-  private db;
-
   constructor() {
-    const sql = neon(process.env.DATABASE_URL!);
-    this.db = drizzle(sql);
     this.initializeData();
   }
 
   private async initializeData() {
     // Check if players already exist in the database
-    const existingPlayers = await this.db.select().from(players);
+    const existingPlayers = await db.select().from(players);
     if (existingPlayers.length > 0) {
       return; // Data already exists, no need to seed
     }
@@ -342,22 +337,22 @@ export class DbStorage implements IStorage {
 
     // Insert initial players
     for (const playerData of initialPlayers) {
-      await this.db.insert(players).values(playerData);
+      await db.insert(players).values(playerData);
     }
   }
 
   async getPlayer(id: string): Promise<Player | undefined> {
-    const result = await this.db.select().from(players).where(eq(players.id, id));
+    const result = await db.select().from(players).where(eq(players.id, id));
     return result[0];
   }
 
   async getPlayerByName(name: string): Promise<Player | undefined> {
-    const result = await this.db.select().from(players).where(eq(players.name, name));
+    const result = await db.select().from(players).where(eq(players.name, name));
     return result[0];
   }
 
   async getAllPlayers(): Promise<Player[]> {
-    return await this.db.select().from(players);
+    return await db.select().from(players);
   }
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
@@ -370,12 +365,12 @@ export class DbStorage implements IStorage {
       bedfightTier: insertPlayer.bedfightTier || "NR"
     };
     
-    const result = await this.db.insert(players).values(playerData).returning();
+    const result = await db.insert(players).values(playerData).returning();
     return result[0];
   }
 
   async updatePlayer(id: string, updateData: Partial<InsertPlayer>): Promise<Player> {
-    const result = await this.db.update(players)
+    const result = await db.update(players)
       .set(updateData)
       .where(eq(players.id, id))
       .returning();
@@ -388,7 +383,7 @@ export class DbStorage implements IStorage {
   }
 
   async deletePlayer(id: string): Promise<boolean> {
-    const result = await this.db.delete(players).where(eq(players.id, id)).returning();
+    const result = await db.delete(players).where(eq(players.id, id)).returning();
     return result.length > 0;
   }
 }
