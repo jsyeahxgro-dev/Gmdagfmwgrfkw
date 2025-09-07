@@ -68,7 +68,6 @@ const editPlayerSchema = z.object({
 
 const overallEditSchema = z.object({
   name: z.string().min(1, "Player name is required"),
-  title: z.string().min(1, "Title is required"),
   skywarsTier: z.string(),
   midfightTier: z.string(),
   uhcTier: z.string(),
@@ -101,7 +100,6 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
     mutationFn: async (data: AddPlayerData) => {
       const playerData: InsertPlayer = {
         name: data.name,
-        title: "Rookie", // Will be overridden below with calculated title
         skywarsTier: "NR",
         midfightTier: "NR",
         uhcTier: "NR",
@@ -119,7 +117,6 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
       const tempPlayer = { 
         id: '', 
         name: playerData.name,
-        title: playerData.title,
         skywarsTier: playerData.skywarsTier || "NR",
         midfightTier: playerData.midfightTier || "NR",
         uhcTier: playerData.uhcTier || "NR",
@@ -127,7 +124,6 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
         bedfightTier: playerData.bedfightTier || "NR"
       };
       const totalPoints = calculatePlayerPoints(tempPlayer);
-      playerData.title = getTitleFromPoints(totalPoints);
       
       const response = await apiRequest("POST", "/api/players", playerData);
       return response.json();
@@ -257,7 +253,6 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
     resolver: zodResolver(overallEditSchema),
     defaultValues: {
       name: "",
-      title: titleOptions[0] || "Rookie",
       skywarsTier: "NR",
       midfightTier: "NR",
       uhcTier: "NR",
@@ -284,7 +279,6 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
       
       const updateData: Partial<InsertPlayer> = {
         name: data.name,
-        title: autoTitle, // Auto-calculate title based on points
         skywarsTier: data.skywarsTier,
         midfightTier: data.midfightTier,
         uhcTier: data.uhcTier,
@@ -320,7 +314,6 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
     if (player && open) {
       form.reset({
         name: player.name,
-        title: player.title,
         skywarsTier: player.skywarsTier,
         midfightTier: player.midfightTier,
         uhcTier: player.uhcTier,
@@ -355,7 +348,7 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
             </div>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <FormField
                     control={form.control}
                     name="name"
@@ -365,30 +358,6 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
                         <FormControl>
                           <Input {...field} data-testid="overall-edit-name-input" />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Combat Title</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="overall-edit-title-select">
-                              <SelectValue placeholder="Select title" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {titleOptions.map((title) => (
-                              <SelectItem key={title} value={title}>
-                                {title}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -486,7 +455,6 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
       
       const updateData: Partial<InsertPlayer> = {
         name: data.name,
-        title: autoTitle,
       };
       (updateData as any)[gameModeField] = data.tier;
       
@@ -1000,7 +968,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                               </Avatar>
                               <div>
                                 <h3 className="font-semibold text-lg">{player.name}</h3>
-                                <p className="text-sm text-muted-foreground">{player.title}</p>
+                                <p className="text-sm text-muted-foreground">{getTitleFromPoints(calculatePlayerPoints(player))}</p>
                               </div>
                             </div>
                             
