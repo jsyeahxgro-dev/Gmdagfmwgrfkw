@@ -175,20 +175,15 @@ export function TierList({ players, isLoading }: TierListProps) {
                     return tierOrder.indexOf(aHighest) - tierOrder.indexOf(bHighest);
                   })
                   .map((player, index) => (
-                    <div key={player.id} className={`flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors ${
-                      index === 0 ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/20 dark:to-yellow-800/20 shine-gold' :
-                      index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-900/20 dark:to-gray-800/20 shine-silver' :
-                      index === 2 ? 'bg-gradient-to-r from-orange-100 to-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 shine-bronze' :
-                      ''
-                    }`} data-testid={`leaderboard-player-${player.id}`}>
+                    <div key={player.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors" data-testid={`leaderboard-player-${player.id}`}>
                       {/* Ranking */}
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg ${
-                        index === 0 ? 'bg-yellow-500 text-yellow-900' :
-                        index === 1 ? 'bg-gray-400 text-gray-900' :
-                        index === 2 ? 'bg-orange-500 text-orange-900' :
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg minecraft-font ${
+                        index === 0 ? 'rank-1' :
+                        index === 1 ? 'rank-2' :
+                        index === 2 ? 'rank-3' :
                         'bg-muted text-muted-foreground'
                       }`}>
-                        {index + 1}
+                        #{index + 1}
                       </div>
                       
                       {/* Player Info */}

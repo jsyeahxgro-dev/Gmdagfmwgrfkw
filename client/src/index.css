@@ -207,30 +207,24 @@
 /* MCBE-style ranking colors */
 .rank-1 {
   background: linear-gradient(45deg, #FFD700, #FFA500);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 2px 2px 4px rgba(255, 215, 0, 0.3);
+  color: #8B4513;
+  border: 2px solid #FFD700;
   font-family: 'Press Start 2P', cursive;
   font-weight: bold;
 }
 
 .rank-2 {
-  background: linear-gradient(45deg, #C0C0C0, #808080);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 2px 2px 4px rgba(192, 192, 192, 0.3);
+  background: linear-gradient(45deg, #C0C0C0, #A0A0A0);
+  color: #2F2F2F;
+  border: 2px solid #C0C0C0;
   font-family: 'Press Start 2P', cursive;
   font-weight: bold;
 }
 
 .rank-3 {
-  background: linear-gradient(45deg, #CD7F32, #8B4513);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 2px 2px 4px rgba(205, 127, 50, 0.3);
+  background: linear-gradient(45deg, #CD7F32, #A0522D);
+  color: #FFFFFF;
+  border: 2px solid #CD7F32;
   font-family: 'Press Start 2P', cursive;
   font-weight: bold;
 }
