@@ -88,9 +88,17 @@ export function TierList({ players, isLoading }: TierListProps) {
     const tierLevel = tierLevels.find(t => t.key === tierKey);
     if (!tierLevel) return [];
 
-    return filteredPlayers.filter(player => {
+    const tieredPlayers = filteredPlayers.filter(player => {
       const playerTier = getTierForGameMode(player, selectedGameMode);
       return (tierLevel.tiers as readonly string[]).includes(playerTier);
+    });
+
+    // Sort players within the tier level according to tier order (HT1 > MIDT1 > LT1, etc.)
+    const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
+    return tieredPlayers.sort((a, b) => {
+      const aTier = getTierForGameMode(a, selectedGameMode);
+      const bTier = getTierForGameMode(b, selectedGameMode);
+      return tierOrder.indexOf(aTier) - tierOrder.indexOf(bTier);
     });
   };
 
