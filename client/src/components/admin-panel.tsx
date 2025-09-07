@@ -39,6 +39,13 @@ interface EditPlayerDialogProps {
   onSuccess: () => void;
 }
 
+interface OverallEditDialogProps {
+  open: boolean;
+  onClose: () => void;
+  player: Player | null;
+  onSuccess: () => void;
+}
+
 interface DeleteConfirmDialogProps {
   open: boolean;
   onClose: () => void;
@@ -58,8 +65,22 @@ const editPlayerSchema = z.object({
   tier: z.string().min(1, "Tier is required"),
 });
 
+const overallEditSchema = z.object({
+  name: z.string().min(1, "Player name is required"),
+  title: z.string().min(1, "Title is required"),
+  bridgeTier: z.string(),
+  skywarsTier: z.string(),
+  crystalTier: z.string(),
+  midfightTier: z.string(),
+  uhcTier: z.string(),
+  nodebuffTier: z.string(),
+  bedfightTier: z.string(),
+  sumoTier: z.string(),
+});
+
 type AddPlayerData = z.infer<typeof addPlayerSchema>;
 type EditPlayerData = z.infer<typeof editPlayerSchema>;
+type OverallEditData = z.infer<typeof overallEditSchema>;
 
 const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
@@ -73,7 +94,7 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
     resolver: zodResolver(addPlayerSchema),
     defaultValues: {
       name: "",
-      title: "Combat Specialist",
+      title: titleOptions[0] || "Combat Specialist",
       gameMode: "skywars",
       tier: "LT5",
     },
@@ -239,6 +260,216 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
             </div>
           </form>
         </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDialogProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const form = useForm<OverallEditData>({
+    resolver: zodResolver(overallEditSchema),
+    defaultValues: {
+      name: "",
+      title: titleOptions[0] || "Combat Specialist",
+      bridgeTier: "NR",
+      skywarsTier: "NR",
+      crystalTier: "NR",
+      midfightTier: "NR",
+      uhcTier: "NR",
+      nodebuffTier: "NR",
+      bedfightTier: "NR",
+      sumoTier: "NR",
+    },
+  });
+
+  const updatePlayerMutation = useMutation({
+    mutationFn: async (data: OverallEditData) => {
+      if (!player) return;
+      
+      const updateData: Partial<InsertPlayer> = {
+        name: data.name,
+        title: data.title,
+        bridgeTier: data.bridgeTier,
+        skywarsTier: data.skywarsTier,
+        crystalTier: data.crystalTier,
+        midfightTier: data.midfightTier,
+        uhcTier: data.uhcTier,
+        nodebuffTier: data.nodebuffTier,
+        bedfightTier: data.bedfightTier,
+        sumoTier: data.sumoTier,
+      };
+      
+      const response = await apiRequest("PATCH", `/api/players/${player.id}`, updateData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      onSuccess();
+      toast({
+        title: "Player updated",
+        description: "Player has been successfully updated",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update player",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (data: OverallEditData) => {
+    updatePlayerMutation.mutate(data);
+  };
+
+  useEffect(() => {
+    if (player && open) {
+      form.reset({
+        name: player.name,
+        title: player.title,
+        bridgeTier: player.bridgeTier,
+        skywarsTier: player.skywarsTier,
+        crystalTier: player.crystalTier,
+        midfightTier: player.midfightTier,
+        uhcTier: player.uhcTier,
+        nodebuffTier: player.nodebuffTier,
+        bedfightTier: player.bedfightTier,
+        sumoTier: player.sumoTier,
+      });
+    }
+  }, [player, open, form]);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="overall-edit-dialog">
+        <DialogHeader>
+          <DialogTitle>Edit Player - Overall</DialogTitle>
+        </DialogHeader>
+        {player && (
+          <>
+            <div className="flex items-center space-x-3 mb-4">
+              <Avatar className="w-12 h-12 border-2 border-border/30">
+                <AvatarImage 
+                  src={`https://mc-heads.net/avatar/${player.name}/64`}
+                  alt={`${player.name}'s skin`}
+                />
+                <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                  {player.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-semibold text-lg">{player.name}</h3>
+                <p className="text-sm text-muted-foreground">Edit all game modes</p>
+              </div>
+            </div>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Player Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} data-testid="overall-edit-name-input" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Combat Title</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="overall-edit-title-select">
+                              <SelectValue placeholder="Select title" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {titleOptions.map((title) => (
+                              <SelectItem key={title} value={title}>
+                                {title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { key: "bridgeTier", label: "Bridge" },
+                    { key: "skywarsTier", label: "Skywars" },
+                    { key: "crystalTier", label: "Crystal" },
+                    { key: "midfightTier", label: "Midfight" },
+                    { key: "uhcTier", label: "UHC" },
+                    { key: "nodebuffTier", label: "Nodebuff" },
+                    { key: "bedfightTier", label: "Bedfight" },
+                    { key: "sumoTier", label: "Sumo" }
+                  ].map((gameMode) => (
+                    <FormField
+                      key={gameMode.key}
+                      control={form.control}
+                      name={gameMode.key as keyof OverallEditData}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{gameMode.label}</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid={`overall-edit-${gameMode.key}-select`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {tierOptions.map((tier) => (
+                                <SelectItem key={tier} value={tier}>
+                                  {tier === "NR" ? "Not Ranked" : tier}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+
+                <div className="flex space-x-4">
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={updatePlayerMutation.isPending}
+                    data-testid="overall-edit-submit"
+                  >
+                    {updatePlayerMutation.isPending ? "Updating..." : "Update Player"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={onClose}
+                    data-testid="overall-edit-cancel"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -418,6 +649,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
   const [selectedGameMode, setSelectedGameMode] = useState<GameMode>("overall");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showOverallEditDialog, setShowOverallEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editingGameMode, setEditingGameMode] = useState<GameMode | undefined>();
@@ -516,11 +748,6 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     loginMutation.mutate(data);
   };
 
-  const filteredPlayers = players.filter((player) => {
-    if (selectedGameMode === "overall") return true;
-    const tier = getTierForGameMode(player, selectedGameMode);
-    return tier !== "NR";
-  });
 
   const getTierForGameMode = (player: Player, gameMode: GameMode): string => {
     switch (gameMode) {
@@ -550,6 +777,12 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     }
   };
 
+  const filteredPlayers = players.filter((player) => {
+    if (selectedGameMode === "overall") return true;
+    const tier = getTierForGameMode(player, selectedGameMode);
+    return tier !== "NR";
+  });
+
   const getPlayersForTier = (tierKey: string) => {
     const tierLevel = tierLevels.find(t => t.key === tierKey);
     if (!tierLevel) return [];
@@ -562,8 +795,12 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
 
   const handlePlayerEdit = (player: Player, gameMode?: GameMode) => {
     setEditingPlayer(player);
-    setEditingGameMode(gameMode || selectedGameMode);
-    setShowEditDialog(true);
+    if (selectedGameMode === "overall") {
+      setShowOverallEditDialog(true);
+    } else {
+      setEditingGameMode(gameMode || selectedGameMode);
+      setShowEditDialog(true);
+    }
   };
 
   const handlePlayerDelete = (player: Player, gameMode?: string) => {
@@ -912,6 +1149,19 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
           setShowEditDialog(false);
           setEditingPlayer(null);
           setEditingGameMode(undefined);
+        }}
+      />
+      
+      <OverallEditDialog 
+        open={showOverallEditDialog} 
+        onClose={() => {
+          setShowOverallEditDialog(false);
+          setEditingPlayer(null);
+        }}
+        player={editingPlayer}
+        onSuccess={() => {
+          setShowOverallEditDialog(false);
+          setEditingPlayer(null);
         }}
       />
       
