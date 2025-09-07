@@ -23,10 +23,12 @@ export function TierList({ players, isLoading }: TierListProps) {
   const [selectedGameMode, setSelectedGameMode] = useState<GameMode>("overall");
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Handle admin mode state from admin panel
   const handleAdminLogin = () => {
     setIsAdminMode(true);
+    setIsAuthenticated(true);
   };
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const { toast } = useToast();
@@ -341,6 +343,7 @@ export function TierList({ players, isLoading }: TierListProps) {
           }}
           onAdminLogin={handleAdminLogin}
           editingPlayer={editingPlayer}
+          isAuthenticated={isAuthenticated}
         />
       )}
     </div>

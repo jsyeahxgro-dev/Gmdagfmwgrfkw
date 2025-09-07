@@ -23,6 +23,7 @@ interface AdminPanelProps {
   onClose: () => void;
   onAdminLogin?: () => void;
   editingPlayer?: Player | null;
+  isAuthenticated?: boolean;
 }
 
 interface AddPlayerDialogProps {
@@ -673,8 +674,8 @@ function DeleteConfirmDialog({ open, onClose, onConfirm, playerName, gameMode }:
   );
 }
 
-export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditingPlayer }: AdminPanelProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditingPlayer, isAuthenticated: externalIsAuthenticated = false }: AdminPanelProps) {
+  const [isAuthenticated, setIsAuthenticated] = useState(externalIsAuthenticated);
   const [selectedGameMode, setSelectedGameMode] = useState<GameMode>("overall");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -686,6 +687,11 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
   const [deletingGameMode, setDeletingGameMode] = useState<string | undefined>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Sync external authentication state with local state
+  useEffect(() => {
+    setIsAuthenticated(externalIsAuthenticated);
+  }, [externalIsAuthenticated]);
 
   const { data: players = [], isLoading } = useQuery<Player[]>({
     queryKey: ["/api/players"],
