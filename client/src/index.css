@@ -235,63 +235,42 @@
   font-weight: bold;
 }
 
-/* Shimmer effects for top 3 players */
-@keyframes shimmer-gold {
-  0% {
-    background-position: -200px 0;
+/* Subtle shining effects for top 3 players */
+@keyframes shine-gold {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
   }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
-}
-
-@keyframes shimmer-silver {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
+  50% {
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6), 0 0 25px rgba(255, 215, 0, 0.3);
   }
 }
 
-@keyframes shimmer-bronze {
-  0% {
-    background-position: -200px 0;
+@keyframes shine-silver {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(192, 192, 192, 0.3);
   }
-  100% {
-    background-position: calc(200px + 100%) 0;
+  50% {
+    box-shadow: 0 0 15px rgba(192, 192, 192, 0.6), 0 0 25px rgba(192, 192, 192, 0.3);
   }
 }
 
-.shimmer-gold {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 223, 0, 0.1) 0%,
-    rgba(255, 223, 0, 0.3) 50%,
-    rgba(255, 223, 0, 0.1) 100%
-  );
-  background-size: 200px 100%;
-  animation: shimmer-gold 2s infinite;
+@keyframes shine-bronze {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(205, 127, 50, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(205, 127, 50, 0.6), 0 0 25px rgba(205, 127, 50, 0.3);
+  }
 }
 
-.shimmer-silver {
-  background: linear-gradient(
-    90deg,
-    rgba(192, 192, 192, 0.1) 0%,
-    rgba(192, 192, 192, 0.3) 50%,
-    rgba(192, 192, 192, 0.1) 100%
-  );
-  background-size: 200px 100%;
-  animation: shimmer-silver 2s infinite;
+.shine-gold {
+  animation: shine-gold 3s ease-in-out infinite;
 }
 
-.shimmer-bronze {
-  background: linear-gradient(
-    90deg,
-    rgba(205, 127, 50, 0.1) 0%,
-    rgba(205, 127, 50, 0.3) 50%,
-    rgba(205, 127, 50, 0.1) 100%
-  );
-  background-size: 200px 100%;
-  animation: shimmer-bronze 2s infinite;
+.shine-silver {
+  animation: shine-silver 3s ease-in-out infinite;
+}
+
+.shine-bronze {
+  animation: shine-bronze 3s ease-in-out infinite;
 }
