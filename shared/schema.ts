@@ -33,20 +33,17 @@ export const gameModes = [
   { key: 'midfight', name: 'Midfight', icon: '⚔️', abbr: 'Midf' },
   { key: 'nodebuff', name: 'Nodebuff', icon: '🛡️', abbr: 'NoDb' },
   { key: 'bedfight', name: 'Bedfight', icon: '🛏️', abbr: 'Bed' },
-  { key: 'uhc', name: 'UHC', icon: '💀', abbr: 'UHC' },
-  { key: 'bridge', name: 'Bridge', icon: '🌉', abbr: 'Br' },
-  { key: 'crystal', name: 'Crystal', icon: '💎', abbr: 'Crys' },
-  { key: 'sumo', name: 'Sumo', icon: '🥋', abbr: 'Sumo' }
+  { key: 'uhc', name: 'UHC', icon: '💀', abbr: 'UHC' }
 ] as const;
 
 export type GameMode = typeof gameModes[number]['key'];
 
 export const tierLevels = [
-  { key: 'T1', name: 'TIER 1', tiers: ['HT1', 'MIDT1', 'LT1'], color: 'from-yellow-400 to-yellow-600', textColor: 'text-yellow-900' },
-  { key: 'T2', name: 'TIER 2', tiers: ['HT2', 'MIDT2', 'LT2'], color: 'from-gray-300 to-gray-500', textColor: 'text-gray-900' },
-  { key: 'T3', name: 'TIER 3', tiers: ['HT3', 'MIDT3', 'LT3'], color: 'from-orange-400 to-orange-600', textColor: 'text-orange-900' },
-  { key: 'T4', name: 'TIER 4', tiers: ['HT4', 'MIDT4', 'LT4'], color: 'from-green-400 to-green-600', textColor: 'text-green-900' },
-  { key: 'T5', name: 'TIER 5', tiers: ['HT5', 'MIDT5', 'LT5'], color: 'from-red-400 to-red-600', textColor: 'text-red-900' }
+  { key: 'T1', name: 'TIER 1', tiers: ['HT1', 'MIDT1', 'LT1'], color: 'from-white to-gray-100', textColor: 'text-gray-900' },
+  { key: 'T2', name: 'TIER 2', tiers: ['HT2', 'MIDT2', 'LT2'], color: 'from-white to-gray-100', textColor: 'text-gray-900' },
+  { key: 'T3', name: 'TIER 3', tiers: ['HT3', 'MIDT3', 'LT3'], color: 'from-white to-gray-100', textColor: 'text-gray-900' },
+  { key: 'T4', name: 'TIER 4', tiers: ['HT4', 'MIDT4', 'LT4'], color: 'from-white to-gray-100', textColor: 'text-gray-900' },
+  { key: 'T5', name: 'TIER 5', tiers: ['HT5', 'MIDT5', 'LT5'], color: 'from-white to-gray-100', textColor: 'text-gray-900' }
 ] as const;
 
 export const getTierColor = (tier: string) => {

@@ -15,6 +15,7 @@ interface PlayerCardProps {
   isAdmin?: boolean;
   onEdit?: (player: Player) => void;
   onDelete?: (id: string) => void;
+  simplified?: boolean;  // For tier lists, show simplified version
 }
 
 interface QuickEditProps {
@@ -99,7 +100,7 @@ function QuickEdit({ player, onSave, onCancel }: QuickEditProps) {
   );
 }
 
-export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete }: PlayerCardProps) {
+export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete, simplified = false }: PlayerCardProps) {
   const [imageError, setImageError] = useState(false);
   const [isQuickEditing, setIsQuickEditing] = useState(false);
   
@@ -161,6 +162,55 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete 
     );
   }
 
+  if (simplified) {
+    // Simplified version for tier lists
+    return (
+      <Card 
+        className={`group relative hover:shadow-md transition-all duration-200 bg-card/80 backdrop-blur-sm border-border/50 hover:bg-card/90 border-l-4 ${tierColorClass} ${isAdmin ? 'cursor-pointer' : ''}`} 
+        data-testid={`player-card-${player.id}`}
+        onClick={isAdmin ? handleEdit : undefined}
+      >
+        <CardContent className="p-3">
+          <div className="text-center">
+            {ranking && (
+              <span className={`text-sm font-bold block mb-1 ${
+                ranking === 1 ? 'rank-1' : 
+                ranking === 2 ? 'rank-2' : 
+                ranking === 3 ? 'rank-3' : 
+                'minecraft-font text-primary'
+              }`}>
+                #{ranking}
+              </span>
+            )}
+            <p className="font-semibold text-sm truncate" data-testid={`player-name-${player.id}`}>
+              {player.name}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {currentTier}
+            </p>
+          </div>
+          
+          {isAdmin && (
+            <div className="flex justify-center mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit();
+                }}
+                className="h-6 px-2"
+                data-testid={`edit-player-${player.id}`}
+              >
+                <Edit className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card 
       className={`group relative hover:shadow-lg transition-all duration-300 bg-card/80 backdrop-blur-sm border-border/50 hover:bg-card/90 border-l-4 ${tierColorClass} ${isAdmin ? 'cursor-pointer' : ''}`} 
@@ -201,18 +251,15 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete 
             <p className="text-xs text-muted-foreground truncate">
               {player.title}
             </p>
-            {/* Show gamemode tiers in overall ranking */}
-            {window.location.pathname === "/" && (
+            {/* Show gamemode tiers in overall ranking only */}
+            {!simplified && (
               <div className="flex flex-wrap gap-1 mt-1">
                 {[
                   { key: 'skywars', tier: player.skywarsTier, abbr: 'SW' },
                   { key: 'midfight', tier: player.midfightTier, abbr: 'Midf' },
                   { key: 'nodebuff', tier: player.nodebuffTier, abbr: 'NoDb' },
                   { key: 'bedfight', tier: player.bedfightTier, abbr: 'Bed' },
-                  { key: 'uhc', tier: player.uhcTier, abbr: 'UHC' },
-                  { key: 'bridge', tier: player.bridgeTier, abbr: 'Br' },
-                  { key: 'crystal', tier: player.crystalTier, abbr: 'Crys' },
-                  { key: 'sumo', tier: player.sumoTier, abbr: 'Sumo' }
+                  { key: 'uhc', tier: player.uhcTier, abbr: 'UHC' }
                 ].filter(mode => mode.tier && mode.tier !== "NR").map(mode => (
                   <Badge key={mode.key} variant="outline" className="text-xs px-1 py-0">
                     {mode.abbr}: {mode.tier}

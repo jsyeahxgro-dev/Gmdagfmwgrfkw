@@ -421,7 +421,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                           </FormItem>
                         )}
                       />
-                      {(["skywarsTier", "midfightTier", "uhcTier", "nodebuffTier", "bedfightTier", "bridgeTier", "crystalTier", "sumoTier"] as const).map((field) => (
+                      {(["skywarsTier", "midfightTier", "uhcTier", "nodebuffTier", "bedfightTier"] as const).map((field) => (
                         <FormField
                           key={field}
                           control={playerForm.control}

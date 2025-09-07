@@ -60,17 +60,13 @@ export function TierList({ players, isLoading }: TierListProps) {
     switch (gameMode) {
       case "skywars": return player.skywarsTier;
       case "midfight": return player.midfightTier;
-      case "bridge": return player.bridgeTier || "NR";
-      case "crystal": return player.crystalTier || "NR";
-      case "sumo": return player.sumoTier || "NR";
       case "nodebuff": return player.nodebuffTier;
       case "bedfight": return player.bedfightTier;
       case "uhc": return player.uhcTier;
       case "overall": 
         // For overall, use highest tier across all game modes
         const tiers = [
-          player.skywarsTier, player.midfightTier, player.bridgeTier,
-          player.crystalTier, player.sumoTier, player.nodebuffTier,
+          player.skywarsTier, player.midfightTier, player.nodebuffTier,
           player.bedfightTier, player.uhcTier
         ].filter(tier => tier !== "NR");
         
@@ -152,16 +148,16 @@ export function TierList({ players, isLoading }: TierListProps) {
 
       {/* Game Mode Tabs */}
       <Tabs value={selectedGameMode} onValueChange={(value) => setSelectedGameMode(value as GameMode)} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-card/50 backdrop-blur-sm">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-card/80 backdrop-blur-sm border border-border/50">
           {(gameModes as readonly any[]).map((gameMode: any) => (
             <TabsTrigger
               key={gameMode.key}
               value={gameMode.key}
-              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground px-4 py-3"
               data-testid={`gamemode-tab-${gameMode.key}`}
             >
               <span className="text-sm">{gameMode.icon}</span>
-              <span className="hidden sm:inline">{gameMode.name}</span>
+              <span className="text-sm font-medium">{gameMode.name}</span>
             </TabsTrigger>
           ))}
         </TabsList>
@@ -179,7 +175,12 @@ export function TierList({ players, isLoading }: TierListProps) {
                     return tierOrder.indexOf(aHighest) - tierOrder.indexOf(bHighest);
                   })
                   .map((player, index) => (
-                    <div key={player.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors" data-testid={`leaderboard-player-${player.id}`}>
+                    <div key={player.id} className={`flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors ${
+                      index === 0 ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 dark:from-yellow-900/20 dark:to-yellow-800/20 shimmer-gold' :
+                      index === 1 ? 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-900/20 dark:to-gray-800/20 shimmer-silver' :
+                      index === 2 ? 'bg-gradient-to-r from-orange-100 to-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 shimmer-bronze' :
+                      ''
+                    }`} data-testid={`leaderboard-player-${player.id}`}>
                       {/* Ranking */}
                       <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg ${
                         index === 0 ? 'bg-yellow-500 text-yellow-900' :
@@ -210,19 +211,16 @@ export function TierList({ players, isLoading }: TierListProps) {
                       {/* Tier Badges */}
                       <div className="flex gap-2 flex-wrap">
                         {[
-                          { key: 'skywars', tier: player.skywarsTier, icon: '☁️' },
-                          { key: 'midfight', tier: player.midfightTier, icon: '⚔️' },
-                          { key: 'nodebuff', tier: player.nodebuffTier, icon: '🛡️' },
-                          { key: 'bedfight', tier: player.bedfightTier, icon: '🛏️' },
-                          { key: 'uhc', tier: player.uhcTier, icon: '💀' },
-                          { key: 'bridge', tier: player.bridgeTier, icon: '🌉' },
-                          { key: 'crystal', tier: player.crystalTier, icon: '💎' },
-                          { key: 'sumo', tier: player.sumoTier, icon: '🤼' }
+                          { key: 'skywars', tier: player.skywarsTier, abbr: 'SW' },
+                          { key: 'midfight', tier: player.midfightTier, abbr: 'Midf' },
+                          { key: 'nodebuff', tier: player.nodebuffTier, abbr: 'NoDb' },
+                          { key: 'bedfight', tier: player.bedfightTier, abbr: 'Bed' },
+                          { key: 'uhc', tier: player.uhcTier, abbr: 'UHC' }
                         ].map(mode => {
                           if (!mode.tier || mode.tier === 'NR') {
                             return (
-                              <div key={mode.key} className="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center text-xs font-bold text-white" title={`${mode.key}: Not Ranked`}>
-                                NR
+                              <div key={mode.key} className="px-2 py-1 rounded bg-gray-500 text-xs font-bold text-white" title={`${mode.abbr}: Not Ranked`}>
+                                {mode.abbr}
                               </div>
                             );
                           }
@@ -232,8 +230,8 @@ export function TierList({ players, isLoading }: TierListProps) {
                                           mode.tier.startsWith('LT') ? 'bg-blue-500' : 'bg-gray-500';
                           
                           return (
-                            <div key={mode.key} className={`w-8 h-8 rounded-full ${tierColor} flex items-center justify-center text-xs font-bold text-white`} title={`${mode.key}: ${mode.tier}`}>
-                              {mode.tier}
+                            <div key={mode.key} className={`px-2 py-1 rounded ${tierColor} text-xs font-bold text-white`} title={`${mode.abbr}: ${mode.tier}`}>
+                              {mode.abbr}
                             </div>
                           );
                         })}
@@ -308,6 +306,7 @@ export function TierList({ players, isLoading }: TierListProps) {
                             player={player}
                             ranking={index + 1}
                             isAdmin={isAdminMode}
+                            simplified={true}
                             onEdit={(player) => {
                               setEditingPlayer(player);
                               setShowAdminPanel(true);
