@@ -30,6 +30,7 @@ interface AddPlayerDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  gameMode: GameMode;
 }
 
 interface EditPlayerDialogProps {
@@ -57,7 +58,6 @@ interface DeleteConfirmDialogProps {
 
 const addPlayerSchema = z.object({
   name: z.string().min(1, "Player name is required"),
-  gameMode: z.string().min(1, "Game mode is required"),
   tier: z.string().min(1, "Tier is required"),
 });
 
@@ -83,7 +83,7 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
+function AddPlayerDialog({ open, onClose, onSuccess, gameMode }: AddPlayerDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -91,7 +91,6 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
     resolver: zodResolver(addPlayerSchema),
     defaultValues: {
       name: "",
-      gameMode: "skywars",
       tier: "LT5",
     },
   });
@@ -108,7 +107,7 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
       };
       
       // Set the selected gamemode tier
-      const gameModeField = `${data.gameMode}Tier` as keyof typeof playerData;
+      const gameModeField = `${gameMode}Tier` as keyof typeof playerData;
       if (gameModeField in playerData) {
         (playerData as any)[gameModeField] = data.tier;
       }
@@ -167,30 +166,6 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
                   <FormControl>
                     <Input {...field} data-testid="add-player-name-input" />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="gameMode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Game Mode</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="add-player-gamemode-select">
-                        <SelectValue placeholder="Select game mode" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {gameModes.filter(mode => mode.key !== 'overall').map((gameMode) => (
-                        <SelectItem key={gameMode.key} value={gameMode.key}>
-                          {gameMode.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -1183,6 +1158,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
         open={showAddDialog} 
         onClose={() => setShowAddDialog(false)}
         onSuccess={() => setShowAddDialog(false)}
+        gameMode={selectedGameMode as GameMode}
       />
       
       <EditPlayerDialog 
