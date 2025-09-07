@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import type { Player } from "@shared/schema";
 import { getTierColor, gameModes, tierOptions, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
 
@@ -15,10 +15,15 @@ interface PlayerCardProps {
   onDelete?: (id: string) => void;
   simplified?: boolean;  // For tier lists, show simplified version
   gameMode?: string; // To determine if we should show shiny ranks or not
+  isReorderMode?: boolean; // Whether reorder mode is active
+  onMoveUp?: (playerId: string) => void;
+  onMoveDown?: (playerId: string) => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }
 
 
-export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete, simplified = false, gameMode }: PlayerCardProps) {
+export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete, simplified = false, gameMode, isReorderMode = false, onMoveUp, onMoveDown, canMoveUp = true, canMoveDown = true }: PlayerCardProps) {
   const [imageError, setImageError] = useState(false);
   
   const getMinecraftSkinUrl = (playerName: string) => {
@@ -183,24 +188,51 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
 
         {isAdmin && (
           <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleEdit}
-              className="h-8 px-3"
-              data-testid={`edit-player-${player.id}`}
-            >
-              <Edit className="w-3 h-3" />
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={handleDelete}
-              className="h-8 px-3"
-              data-testid={`delete-player-${player.id}`}
-            >
-              <Trash2 className="w-3 h-3" />
-            </Button>
+            {isReorderMode ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onMoveUp && onMoveUp(player.id)}
+                  disabled={!canMoveUp}
+                  className="h-8 px-3"
+                  data-testid={`move-up-player-${player.id}`}
+                >
+                  <ArrowUp className="w-3 h-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onMoveDown && onMoveDown(player.id)}
+                  disabled={!canMoveDown}
+                  className="h-8 px-3"
+                  data-testid={`move-down-player-${player.id}`}
+                >
+                  <ArrowDown className="w-3 h-3" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleEdit}
+                  className="h-8 px-3"
+                  data-testid={`edit-player-${player.id}`}
+                >
+                  <Edit className="w-3 h-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleDelete}
+                  className="h-8 px-3"
+                  data-testid={`delete-player-${player.id}`}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              </>
+            )}
           </div>
         )}
       </CardContent>

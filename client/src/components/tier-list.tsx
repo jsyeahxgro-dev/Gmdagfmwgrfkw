@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, Settings, Edit, Trash2 } from "lucide-react";
+import { Search, Plus, Settings, Edit, Trash2, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
 import { PlayerCard } from "./player-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminPanel } from "./admin-panel";
@@ -43,9 +43,14 @@ interface DraggablePlayerCardProps {
   onEdit?: (player: Player) => void;
   onDelete?: (id: string) => void;
   gameMode?: string;
+  isReorderMode?: boolean;
+  onMoveUp?: (playerId: string) => void;
+  onMoveDown?: (playerId: string) => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }
 
-function DraggablePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameMode }: DraggablePlayerCardProps) {
+function DraggablePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameMode, isReorderMode, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: DraggablePlayerCardProps) {
   const {
     attributes,
     listeners,
@@ -75,6 +80,11 @@ function DraggablePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameM
         isAdmin={isAdmin}
         simplified={true}
         gameMode={gameMode}
+        isReorderMode={isReorderMode}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+        canMoveUp={canMoveUp}
+        canMoveDown={canMoveDown}
         onEdit={onEdit}
         onDelete={onDelete}
       />
@@ -154,6 +164,7 @@ export function TierList({ players, isLoading }: TierListProps) {
     setIsAuthenticated(true);
   };
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [isReorderMode, setIsReorderMode] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -256,6 +267,35 @@ export function TierList({ players, isLoading }: TierListProps) {
 
   // Add support for custom player ordering within tiers
   const [playerOrders, setPlayerOrders] = useState<Record<string, string[]>>({});
+
+  // Move player up/down within their tier
+  const movePlayerUp = (playerId: string, tierKey: string) => {
+    const tierPlayers = getOrderedPlayersForTier(tierKey);
+    const currentIndex = tierPlayers.findIndex(p => p.id === playerId);
+    if (currentIndex > 0) {
+      const newOrder = [...tierPlayers];
+      [newOrder[currentIndex - 1], newOrder[currentIndex]] = [newOrder[currentIndex], newOrder[currentIndex - 1]];
+      
+      setPlayerOrders(prev => ({
+        ...prev,
+        [tierKey]: newOrder.map(p => p.id)
+      }));
+    }
+  };
+
+  const movePlayerDown = (playerId: string, tierKey: string) => {
+    const tierPlayers = getOrderedPlayersForTier(tierKey);
+    const currentIndex = tierPlayers.findIndex(p => p.id === playerId);
+    if (currentIndex < tierPlayers.length - 1) {
+      const newOrder = [...tierPlayers];
+      [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
+      
+      setPlayerOrders(prev => ({
+        ...prev,
+        [tierKey]: newOrder.map(p => p.id)
+      }));
+    }
+  };
 
   const getOrderedPlayersForTier = (tierKey: string) => {
     const players = getPlayersForTier(tierKey);
@@ -406,13 +446,25 @@ export function TierList({ players, isLoading }: TierListProps) {
             {isAdminMode ? "Exit Admin" : "Admin Mode"}
           </Button>
           {isAdminMode && (
-            <Button
-              onClick={() => setShowAdminPanel(true)}
-              data-testid="add-player-button"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Player
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setShowAdminPanel(true)}
+                data-testid="add-player-button"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Player
+              </Button>
+              {selectedGameMode !== "overall" && (
+                <Button
+                  onClick={() => setIsReorderMode(!isReorderMode)}
+                  variant={isReorderMode ? "destructive" : "outline"}
+                  data-testid="reorder-toggle-button"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  {isReorderMode ? "Exit Reorder" : "Reorder"}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -559,11 +611,22 @@ export function TierList({ players, isLoading }: TierListProps) {
                           ranking={index + 1}
                           isAdmin={isAdminMode}
                           gameMode={gameMode.key}
+                          isReorderMode={isReorderMode}
+                          onMoveUp={(playerId: string) => movePlayerUp(playerId, tierLevel.key)}
+                          onMoveDown={(playerId: string) => movePlayerDown(playerId, tierLevel.key)}
+                          canMoveUp={index > 0}
+                          canMoveDown={index < playersInTier.length - 1}
                           onEdit={(player) => {
-                            setEditingPlayer(player);
-                            setShowAdminPanel(true);
+                            if (!isReorderMode) {
+                              setEditingPlayer(player);
+                              setShowAdminPanel(true);
+                            }
                           }}
-                          onDelete={(id) => deletePlayerMutation.mutate(id)}
+                          onDelete={(id) => {
+                            if (!isReorderMode) {
+                              deletePlayerMutation.mutate(id);
+                            }
+                          }}
                         />
                       ))}
                     </DroppableTier>
