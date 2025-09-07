@@ -1032,12 +1032,9 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                             
                             {/* Overall Tier and Mode Badges */}
                             <div className="flex flex-col items-end gap-2">
-                              {/* Overall Points and Title */}
+                              {/* Overall Points */}
                               <div className="text-sm font-bold text-muted-foreground">
                                 Points: <span className="text-foreground">{calculatePlayerPoints(player)}</span>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Title: <span className="text-foreground">{getTitleFromPoints(calculatePlayerPoints(player))}</span>
                               </div>
                               
                               {/* Gamemode Badges */}
