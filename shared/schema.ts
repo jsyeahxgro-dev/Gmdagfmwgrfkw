@@ -20,7 +20,7 @@ export const insertPlayerSchema = createInsertSchema(players).omit({
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type Player = typeof players.$inferSelect;
 
-export const tierOptions = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5", "NR"] as const;
+export const tierOptions = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"] as const;
 export const titleOptions = [
   "Rookie",
   "Combat Novice", 
@@ -44,11 +44,11 @@ export const gameModes = [
 export type GameMode = typeof gameModes[number]['key'];
 
 export const tierLevels = [
-  { key: 'T1', name: 'Tier 1', tiers: ['HT1', 'MT1', 'LT1'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T2', name: 'Tier 2', tiers: ['HT2', 'MT2', 'LT2'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T3', name: 'Tier 3', tiers: ['HT3', 'MT3', 'LT3'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T4', name: 'Tier 4', tiers: ['HT4', 'MT4', 'LT4'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T5', name: 'Tier 5', tiers: ['HT5', 'MT5', 'LT5'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' }
+  { key: 'T1', name: 'Tier 1', tiers: ['HT1', 'MIDT1', 'LT1'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T2', name: 'Tier 2', tiers: ['HT2', 'MIDT2', 'LT2'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T3', name: 'Tier 3', tiers: ['HT3', 'MIDT3', 'LT3'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T4', name: 'Tier 4', tiers: ['HT4', 'MIDT4', 'LT4'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T5', name: 'Tier 5', tiers: ['HT5', 'MIDT5', 'LT5'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' }
 ] as const;
 
 export const getTierColor = (tier: string, isOverall: boolean = false) => {
@@ -58,18 +58,18 @@ export const getTierColor = (tier: string, isOverall: boolean = false) => {
   }
   
   if (tier.startsWith('HT')) return 'border-l-red-500 bg-red-50 dark:bg-red-950';
-  if (tier.startsWith('MT')) return 'border-l-orange-500 bg-orange-50 dark:bg-orange-950';
+  if (tier.startsWith('MIDT')) return 'border-l-orange-500 bg-orange-50 dark:bg-orange-950';
   if (tier.startsWith('LT')) return 'border-l-blue-500 bg-blue-50 dark:bg-blue-950';
   return 'border-l-gray-500 bg-gray-50 dark:bg-gray-950';
 };
 
 // Points system mapping
 export const tierPoints = {
-  'HT1': 100, 'MT1': 80, 'LT1': 60,
-  'HT2': 70,  'MT2': 60, 'LT2': 50,
-  'HT3': 40,  'MT3': 35, 'LT3': 30,
-  'HT4': 20,  'MT4': 15, 'LT4': 10,
-  'HT5': 8,   'MT5': 6,  'LT5': 4,
+  'HT1': 100, 'MIDT1': 80, 'LT1': 60,
+  'HT2': 70,  'MIDT2': 60, 'LT2': 50,
+  'HT3': 40,  'MIDT3': 35, 'LT3': 30,
+  'HT4': 20,  'MIDT4': 15, 'LT4': 10,
+  'HT5': 8,   'MIDT5': 6,  'LT5': 4,
   'NR': 0
 } as const;
 
