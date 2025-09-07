@@ -53,8 +53,22 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
     }
     return "NR";
   };
+
+  // Get the tier for the specific game mode if in simplified view
+  const getGameModeTier = () => {
+    if (!gameMode || gameMode === 'overall') return getCurrentTier();
+    
+    switch (gameMode) {
+      case 'skywars': return player.skywarsTier || "NR";
+      case 'midfight': return player.midfightTier || "NR";
+      case 'uhc': return player.uhcTier || "NR";
+      case 'nodebuff': return player.nodebuffTier || "NR";
+      case 'bedfight': return player.bedfightTier || "NR";
+      default: return getCurrentTier();
+    }
+  };
   
-  const currentTier = getCurrentTier();
+  const currentTier = simplified ? getGameModeTier() : getCurrentTier();
   const tierColorClass = getTierColor(currentTier);
 
 
