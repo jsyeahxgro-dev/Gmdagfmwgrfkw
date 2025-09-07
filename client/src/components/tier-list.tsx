@@ -208,7 +208,7 @@ export function TierList({ players, isLoading }: TierListProps) {
                                   }}
                                   onDelete={(id) => deletePlayerMutation.mutate(id)}
                                 />
-                              ))
+                              ))}
                             </div>
                           ) : (
                             <div className="flex items-center justify-center h-24 text-center text-muted-foreground">

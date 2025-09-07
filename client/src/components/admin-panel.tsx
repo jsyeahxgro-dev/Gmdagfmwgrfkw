@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { X, Edit, Trash2 } from "lucide-react";
-import { insertPlayerSchema, tierOptions, titleOptions, type Player, type InsertPlayer } from "@shared/schema";
+import { insertPlayerSchema, tierOptions, titleOptions, gameModes, type Player, type InsertPlayer } from "@shared/schema";
 import { z } from "zod";
 
 interface AdminPanelProps {
@@ -20,6 +20,13 @@ interface AdminPanelProps {
   onAdminLogin?: () => void;
   editingPlayer?: Player | null;
 }
+
+const playerFormSchema = insertPlayerSchema.extend({
+  selectedGameMode: z.string().optional(),
+  selectedTier: z.string().optional(),
+});
+
+type PlayerFormData = z.infer<typeof playerFormSchema>;
 
 const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
@@ -43,8 +50,8 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     },
   });
 
-  const playerForm = useForm<InsertPlayer>({
-    resolver: zodResolver(insertPlayerSchema),
+  const playerForm = useForm<PlayerFormData>({
+    resolver: zodResolver(playerFormSchema),
     defaultValues: {
       name: "",
       title: "Combat Specialist",
@@ -56,7 +63,8 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
       nodebuffTier: "NR",
       bedfightTier: "NR",
       sumoTier: "NR",
-      isRetired: false,
+      selectedGameMode: "skywars",
+      selectedTier: "NR",
     },
   });
 
@@ -86,7 +94,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
   });
 
   const createPlayerMutation = useMutation({
-    mutationFn: async (data: InsertPlayer) => {
+    mutationFn: async (data: PlayerFormData) => {
       const response = await apiRequest("POST", "/api/players", data);
       return response.json();
     },
@@ -108,7 +116,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
   });
 
   const updatePlayerMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: InsertPlayer }) => {
+    mutationFn: async ({ id, data }: { id: string; data: PlayerFormData }) => {
       const response = await apiRequest("PATCH", `/api/players/${id}`, data);
       return response.json();
     },
@@ -172,11 +180,33 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     loginMutation.mutate(data);
   };
 
-  const handlePlayerSubmit = (data: InsertPlayer) => {
+  const handlePlayerSubmit = (data: PlayerFormData) => {
+    // Convert single gamemode/tier selection to full player data
+    const playerData: InsertPlayer = {
+      name: data.name,
+      title: data.title,
+      bridgeTier: "NR",
+      skywarsTier: "NR",
+      crystalTier: "NR",
+      midfightTier: "NR",
+      uhcTier: "NR",
+      nodebuffTier: "NR",
+      bedfightTier: "NR",
+      sumoTier: "NR",
+    };
+    
+    // Set the selected gamemode tier
+    if (data.selectedGameMode && data.selectedTier) {
+      const gameModeField = `${data.selectedGameMode}Tier` as keyof typeof playerData;
+      if (gameModeField in playerData) {
+        (playerData as any)[gameModeField] = data.selectedTier;
+      }
+    }
+    
     if (editingPlayer) {
-      updatePlayerMutation.mutate({ id: editingPlayer.id, data });
+      updatePlayerMutation.mutate({ id: editingPlayer.id, data: playerData });
     } else {
-      createPlayerMutation.mutate(data);
+      createPlayerMutation.mutate(playerData);
     }
   };
 
@@ -193,7 +223,6 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
       nodebuffTier: player.nodebuffTier,
       bedfightTier: player.bedfightTier,
       sumoTier: player.sumoTier,
-      isRetired: player.isRetired,
     });
   };
 
@@ -324,21 +353,42 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {(["skywarsTier", "midfightTier", "uhcTier", "nodebuffTier", "bedfightTier"] as const).map((field) => (
+                  {!editingPlayer && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
-                        key={field}
                         control={playerForm.control}
-                        name={field}
-                        render={({ field: formField }) => (
+                        name="selectedGameMode"
+                        render={({ field }) => (
                           <FormItem>
-                            <FormLabel>
-                              {field.replace("Tier", "").replace(/([A-Z])/g, " $1").trim()} Tier
-                            </FormLabel>
-                            <Select onValueChange={formField.onChange} defaultValue={formField.value}>
+                            <FormLabel>Select Gamemode</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
-                                <SelectTrigger data-testid={`${field}-select`}>
-                                  <SelectValue />
+                                <SelectTrigger data-testid="gamemode-select">
+                                  <SelectValue placeholder="Choose gamemode" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {gameModes.filter(mode => mode.key !== 'overall').map((gameMode) => (
+                                  <SelectItem key={gameMode.key} value={gameMode.key}>
+                                    {gameMode.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={playerForm.control}
+                        name="selectedTier"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Select Tier</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="tier-select">
+                                  <SelectValue placeholder="Choose tier" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -353,8 +403,55 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                           </FormItem>
                         )}
                       />
-                    ))}
-                  </div>
+                    </div>
+                  )}
+
+                  {editingPlayer && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <FormField
+                        control={playerForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Player Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} data-testid="edit-player-name-input" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {(["skywarsTier", "midfightTier", "uhcTier", "nodebuffTier", "bedfightTier", "bridgeTier", "crystalTier", "sumoTier"] as const).map((field) => (
+                        <FormField
+                          key={field}
+                          control={playerForm.control}
+                          name={field}
+                          render={({ field: formField }) => (
+                            <FormItem>
+                              <FormLabel>
+                                {field.replace("Tier", "").replace(/([A-Z])/g, " $1").trim()} Tier
+                              </FormLabel>
+                              <Select onValueChange={formField.onChange} defaultValue={formField.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid={`${field}-select`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {tierOptions.map((tier) => (
+                                    <SelectItem key={tier} value={tier}>
+                                      {tier === "NR" ? "Not Ranked" : tier}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      ))}
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     <div className="flex space-x-4">
