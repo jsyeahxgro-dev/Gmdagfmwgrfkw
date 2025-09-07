@@ -24,161 +24,113 @@ export class MemStorage implements IStorage {
       {
         name: "D3j4411",
         title: "Combat Grandmaster",
-        bridgeTier: "NR",
         skywarsTier: "HT1",
-        crystalTier: "NR",
-        midfightTier: "NR",
-        uhcTier: "NR",
+        midfightTier: "HT1",
+        uhcTier: "HT2",
         nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        bedfightTier: "NR"
       },
       {
         name: "Velfair",
         title: "Combat Grandmaster",
-        bridgeTier: "NR",
         skywarsTier: "HT1",
-        crystalTier: "NR",
-        midfightTier: "NR",
-        uhcTier: "NR",
-        nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        midfightTier: "HT2",
+        uhcTier: "HT1",
+        nodebuffTier: "HT3",
+        bedfightTier: "NR"
       },
       {
         name: "DR0IDv",
-        title: "Combat Grandmaster",
-        bridgeTier: "NR",
+        title: "Combat Master",
         skywarsTier: "HT1",
-        crystalTier: "NR",
         midfightTier: "NR",
-        uhcTier: "NR",
-        nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        uhcTier: "HT2",
+        nodebuffTier: "HT1",
+        bedfightTier: "HT3"
       },
       {
         name: "Torqueyckpio",
-        title: "Combat Grandmaster",
-        bridgeTier: "NR",
-        skywarsTier: "HT1",
-        crystalTier: "NR",
-        midfightTier: "NR",
-        uhcTier: "NR",
+        title: "Combat Ace",
+        skywarsTier: "MIDT1",
+        midfightTier: "HT2",
+        uhcTier: "HT3",
         nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        bedfightTier: "LT1"
       },
       {
         name: "RivaV0cals",
-        title: "Combat Grandmaster",
-        bridgeTier: "NR",
+        title: "Combat Master",
         skywarsTier: "HT1",
-        crystalTier: "NR",
-        midfightTier: "NR",
-        uhcTier: "NR",
+        midfightTier: "HT3",
+        uhcTier: "HT2",
         nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        bedfightTier: "NR"
       },
       // A Tier Players  
       {
         name: "ItzAaronHi",
-        title: "Combat Master",
-        bridgeTier: "NR",
+        title: "Combat Ace",
         skywarsTier: "HT2",
-        crystalTier: "NR",
-        midfightTier: "NR",
-        uhcTier: "NR",
+        midfightTier: "MIDT2",
+        uhcTier: "LT1",
         nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        bedfightTier: "NR"
       },
       {
         name: "zAmqni",
-        title: "Combat Master",
-        bridgeTier: "NR",
+        title: "Combat Elite",
         skywarsTier: "HT2",
-        crystalTier: "NR",
         midfightTier: "NR",
-        uhcTier: "NR",
-        nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        uhcTier: "MIDT1",
+        nodebuffTier: "HT3",
+        bedfightTier: "NR"
       },
       {
         name: "Mikeyandroid",
-        title: "Combat Master", 
-        bridgeTier: "NR",
-        skywarsTier: "HT2",
-        crystalTier: "NR",
-        midfightTier: "NR",
-        uhcTier: "NR",
+        title: "Combat Specialist", 
+        skywarsTier: "MIDT2",
+        midfightTier: "HT3",
+        uhcTier: "LT2",
         nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        bedfightTier: "LT1"
       },
       // B Tier Players
       {
         name: "EletricHayden",
-        title: "Combat Ace",
-        bridgeTier: "NR",
+        title: "Combat Specialist",
         skywarsTier: "HT3",
-        crystalTier: "NR",
-        midfightTier: "NR",
+        midfightTier: "MIDT3",
         uhcTier: "NR",
         nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        bedfightTier: "NR"
       },
       {
         name: "FlamePvPs",
-        title: "Combat Ace",
-        bridgeTier: "NR",
-        skywarsTier: "HT3",
-        crystalTier: "NR",
-        midfightTier: "NR",
-        uhcTier: "NR",
+        title: "Combat Cadet",
+        skywarsTier: "MIDT3",
+        midfightTier: "LT2",
+        uhcTier: "LT3",
         nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        bedfightTier: "NR"
       },
       // C Tier Players
       {
         name: "ComicBiscuit778",
-        title: "Combat Specialist",
-        bridgeTier: "NR",
+        title: "Combat Cadet",
         skywarsTier: "LT1",
-        crystalTier: "NR",
-        midfightTier: "NR",
+        midfightTier: "LT4",
         uhcTier: "NR",
         nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "NR",
-        isRetired: false
+        bedfightTier: "NR"
       },
       {
         name: "EfrazBR",
-        title: "Combat Ace",
-        bridgeTier: "NR",
+        title: "Combat Novice",
         skywarsTier: "NR",
-        crystalTier: "NR",
         midfightTier: "NR",
         uhcTier: "NR",
-        nodebuffTier: "NR",
-        bedfightTier: "NR",
-        sumoTier: "LT1",
-        isRetired: false
+        nodebuffTier: "LT1",
+        bedfightTier: "LT3"
       }
     ];
 
@@ -215,8 +167,8 @@ export class MemStorage implements IStorage {
         }
       };
 
-      const aScore = getTierValue(a.crystalTier) + getTierValue(a.uhcTier) + getTierValue(a.bedfightTier);
-      const bScore = getTierValue(b.crystalTier) + getTierValue(b.uhcTier) + getTierValue(b.bedfightTier);
+      const aScore = getTierValue(a.skywarsTier) + getTierValue(a.midfightTier) + getTierValue(a.uhcTier) + getTierValue(a.nodebuffTier) + getTierValue(a.bedfightTier);
+      const bScore = getTierValue(b.skywarsTier) + getTierValue(b.midfightTier) + getTierValue(b.uhcTier) + getTierValue(b.nodebuffTier) + getTierValue(b.bedfightTier);
       
       return bScore - aScore;
     });
@@ -227,15 +179,11 @@ export class MemStorage implements IStorage {
     const player: Player = { 
       ...insertPlayer, 
       id,
-      bridgeTier: insertPlayer.bridgeTier || "NR",
       skywarsTier: insertPlayer.skywarsTier || "NR",
-      crystalTier: insertPlayer.crystalTier || "NR",
       midfightTier: insertPlayer.midfightTier || "NR",
       uhcTier: insertPlayer.uhcTier || "NR",
       nodebuffTier: insertPlayer.nodebuffTier || "NR",
-      bedfightTier: insertPlayer.bedfightTier || "NR",
-      sumoTier: insertPlayer.sumoTier || "NR",
-      isRetired: false
+      bedfightTier: insertPlayer.bedfightTier || "NR"
     };
     this.players.set(id, player);
     return player;

@@ -68,14 +68,11 @@ const editPlayerSchema = z.object({
 const overallEditSchema = z.object({
   name: z.string().min(1, "Player name is required"),
   title: z.string().min(1, "Title is required"),
-  bridgeTier: z.string(),
   skywarsTier: z.string(),
-  crystalTier: z.string(),
   midfightTier: z.string(),
   uhcTier: z.string(),
   nodebuffTier: z.string(),
   bedfightTier: z.string(),
-  sumoTier: z.string(),
 });
 
 type AddPlayerData = z.infer<typeof addPlayerSchema>;
@@ -94,7 +91,7 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
     resolver: zodResolver(addPlayerSchema),
     defaultValues: {
       name: "",
-      title: titleOptions[0] || "Combat Specialist",
+      title: titleOptions[0] || "Rookie",
       gameMode: "skywars",
       tier: "LT5",
     },
@@ -105,14 +102,11 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
       const playerData: InsertPlayer = {
         name: data.name,
         title: data.title,
-        bridgeTier: "NR",
         skywarsTier: "NR",
-        crystalTier: "NR",
         midfightTier: "NR",
         uhcTier: "NR",
         nodebuffTier: "NR",
         bedfightTier: "NR",
-        sumoTier: "NR",
       };
       
       // Set the selected gamemode tier
@@ -273,15 +267,12 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
     resolver: zodResolver(overallEditSchema),
     defaultValues: {
       name: "",
-      title: titleOptions[0] || "Combat Specialist",
-      bridgeTier: "NR",
+      title: titleOptions[0] || "Rookie",
       skywarsTier: "NR",
-      crystalTier: "NR",
       midfightTier: "NR",
       uhcTier: "NR",
       nodebuffTier: "NR",
       bedfightTier: "NR",
-      sumoTier: "NR",
     },
   });
 
@@ -292,14 +283,11 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
       const updateData: Partial<InsertPlayer> = {
         name: data.name,
         title: data.title,
-        bridgeTier: data.bridgeTier,
         skywarsTier: data.skywarsTier,
-        crystalTier: data.crystalTier,
         midfightTier: data.midfightTier,
         uhcTier: data.uhcTier,
         nodebuffTier: data.nodebuffTier,
         bedfightTier: data.bedfightTier,
-        sumoTier: data.sumoTier,
       };
       
       const response = await apiRequest("PATCH", `/api/players/${player.id}`, updateData);
@@ -331,14 +319,11 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
       form.reset({
         name: player.name,
         title: player.title,
-        bridgeTier: player.bridgeTier,
         skywarsTier: player.skywarsTier,
-        crystalTier: player.crystalTier,
         midfightTier: player.midfightTier,
         uhcTier: player.uhcTier,
         nodebuffTier: player.nodebuffTier,
         bedfightTier: player.bedfightTier,
-        sumoTier: player.sumoTier,
       });
     }
   }, [player, open, form]);
@@ -408,16 +393,13 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
                   />
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {[
-                    { key: "bridgeTier", label: "Bridge" },
                     { key: "skywarsTier", label: "Skywars" },
-                    { key: "crystalTier", label: "Crystal" },
                     { key: "midfightTier", label: "Midfight" },
                     { key: "uhcTier", label: "UHC" },
                     { key: "nodebuffTier", label: "Nodebuff" },
-                    { key: "bedfightTier", label: "Bedfight" },
-                    { key: "sumoTier", label: "Sumo" }
+                    { key: "bedfightTier", label: "Bedfight" }
                   ].map((gameMode) => (
                     <FormField
                       key={gameMode.key}
@@ -522,21 +504,18 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
 
   useEffect(() => {
     if (player && gameMode && open) {
-      const currentTier = getTierForGameMode(player, gameMode);
+      const currentTier = getTierForGameModeLocal(player, gameMode);
       form.reset({ tier: currentTier });
     }
   }, [player, gameMode, open, form]);
 
-  const getTierForGameMode = (player: Player, gameMode: GameMode): string => {
+  const getTierForGameModeLocal = (player: Player, gameMode: GameMode): string => {
     switch (gameMode) {
-      case "bridge": return player.bridgeTier;
       case "skywars": return player.skywarsTier;
-      case "crystal": return player.crystalTier;
       case "midfight": return player.midfightTier;
       case "uhc": return player.uhcTier;
       case "nodebuff": return player.nodebuffTier;
       case "bedfight": return player.bedfightTier;
-      case "sumo": return player.sumoTier;
       default: return "NR";
     }
   };
@@ -751,19 +730,15 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
 
   const getTierForGameMode = (player: Player, gameMode: GameMode): string => {
     switch (gameMode) {
-      case "bridge": return player.bridgeTier;
       case "skywars": return player.skywarsTier;
-      case "crystal": return player.crystalTier;
       case "midfight": return player.midfightTier;
       case "uhc": return player.uhcTier;
       case "nodebuff": return player.nodebuffTier;
       case "bedfight": return player.bedfightTier;
-      case "sumo": return player.sumoTier;
       case "overall":
         const tiers = [
-          player.bridgeTier, player.skywarsTier, player.crystalTier,
-          player.midfightTier, player.uhcTier, player.nodebuffTier,
-          player.bedfightTier, player.sumoTier
+          player.skywarsTier, player.midfightTier, player.uhcTier,
+          player.nodebuffTier, player.bedfightTier
         ].filter(tier => tier !== "NR");
         
         if (tiers.length === 0) return "NR";
@@ -994,14 +969,11 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                               {/* Gamemode Badges */}
                               <div className="flex gap-2 flex-wrap">
                                 {[
-                                  { key: 'bridge', tier: player.bridgeTier, abbr: 'Bridge', name: 'Bridge' },
                                   { key: 'skywars', tier: player.skywarsTier, abbr: 'SW', name: 'Skywars' },
-                                  { key: 'crystal', tier: player.crystalTier, abbr: 'Crystal', name: 'Crystal' },
                                   { key: 'midfight', tier: player.midfightTier, abbr: 'Midf', name: 'Midfight' },
                                   { key: 'uhc', tier: player.uhcTier, abbr: 'UHC', name: 'UHC' },
                                   { key: 'nodebuff', tier: player.nodebuffTier, abbr: 'NoDb', name: 'Nodebuff' },
-                                  { key: 'bedfight', tier: player.bedfightTier, abbr: 'Bed', name: 'Bedfight' },
-                                  { key: 'sumo', tier: player.sumoTier, abbr: 'Sumo', name: 'Sumo' }
+                                  { key: 'bedfight', tier: player.bedfightTier, abbr: 'Bed', name: 'Bedfight' }
                                 ].map(mode => {
                                   if (!mode.tier || mode.tier === 'NR') {
                                     return (
