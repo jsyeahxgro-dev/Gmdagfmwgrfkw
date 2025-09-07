@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, Settings } from "lucide-react";
+import { Search, Plus, Settings, Edit, Trash2 } from "lucide-react";
 import { PlayerCard } from "./player-card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminPanel } from "./admin-panel";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -165,58 +166,160 @@ export function TierList({ players, isLoading }: TierListProps) {
           ))}
         </TabsList>
 
-        {(gameModes as readonly any[]).map((gameMode: any) => (
+        <TabsContent value="overall" className="space-y-6">
+          {/* Overall Leaderboard */}
+          <Card className="bg-card/30 backdrop-blur-sm border-border/50">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {filteredPlayers
+                  .sort((a, b) => {
+                    const aHighest = getTierForGameMode(a, 'overall');
+                    const bHighest = getTierForGameMode(b, 'overall');
+                    const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
+                    return tierOrder.indexOf(aHighest) - tierOrder.indexOf(bHighest);
+                  })
+                  .map((player, index) => (
+                    <div key={player.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors" data-testid={`leaderboard-player-${player.id}`}>
+                      {/* Ranking */}
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg ${
+                        index === 0 ? 'bg-yellow-500 text-yellow-900' :
+                        index === 1 ? 'bg-gray-400 text-gray-900' :
+                        index === 2 ? 'bg-orange-500 text-orange-900' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {index + 1}
+                      </div>
+                      
+                      {/* Player Info */}
+                      <div className="flex items-center gap-3 flex-1">
+                        <Avatar className="w-12 h-12 border-2 border-border/30">
+                          <AvatarImage 
+                            src={`https://mc-heads.net/avatar/${player.name}/64`}
+                            alt={`${player.name}'s skin`}
+                          />
+                          <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                            {player.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-semibold text-lg">{player.name}</h3>
+                          <p className="text-sm text-muted-foreground">{player.title}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Tier Badges */}
+                      <div className="flex gap-2 flex-wrap">
+                        {[
+                          { key: 'skywars', tier: player.skywarsTier, icon: '☁️' },
+                          { key: 'midfight', tier: player.midfightTier, icon: '⚔️' },
+                          { key: 'nodebuff', tier: player.nodebuffTier, icon: '🛡️' },
+                          { key: 'bedfight', tier: player.bedfightTier, icon: '🛏️' },
+                          { key: 'uhc', tier: player.uhcTier, icon: '💀' },
+                          { key: 'bridge', tier: player.bridgeTier, icon: '🌉' },
+                          { key: 'crystal', tier: player.crystalTier, icon: '💎' },
+                          { key: 'sumo', tier: player.sumoTier, icon: '🤼' }
+                        ].map(mode => {
+                          if (!mode.tier || mode.tier === 'NR') {
+                            return (
+                              <div key={mode.key} className="w-8 h-8 rounded-full bg-gray-500 flex items-center justify-center text-xs font-bold text-white" title={`${mode.key}: Not Ranked`}>
+                                NR
+                              </div>
+                            );
+                          }
+                          
+                          const tierColor = mode.tier.startsWith('HT') ? 'bg-red-500' :
+                                          mode.tier.startsWith('MIDT') ? 'bg-orange-500' :
+                                          mode.tier.startsWith('LT') ? 'bg-blue-500' : 'bg-gray-500';
+                          
+                          return (
+                            <div key={mode.key} className={`w-8 h-8 rounded-full ${tierColor} flex items-center justify-center text-xs font-bold text-white`} title={`${mode.key}: ${mode.tier}`}>
+                              {mode.tier}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Admin Actions */}
+                      {isAdminMode && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingPlayer(player);
+                              setShowAdminPanel(true);
+                            }}
+                            data-testid={`edit-player-${player.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deletePlayerMutation.mutate(player.id);
+                            }}
+                            data-testid={`delete-player-${player.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Individual Gamemode Tier Lists */}
+        {(gameModes as readonly any[]).filter((mode: any) => mode.key !== 'overall').map((gameMode: any) => (
           <TabsContent key={gameMode.key} value={gameMode.key} className="space-y-6">
-            {/* Horizontal Tier List */}
-            <div className="space-y-6">
+            {/* Vertical Tier List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               {tierLevels.map((tierLevel) => {
                 const tieredPlayers = getPlayersForTier(tierLevel.key);
                 return (
                   <Card 
                     key={tierLevel.key} 
-                    className="bg-card/30 backdrop-blur-sm border-border/50"
+                    className="min-h-[400px] bg-card/30 backdrop-blur-sm border-border/50"
                     data-testid={`tier-section-${tierLevel.key}`}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-4">
-                        {/* Tier Label */}
-                        <div className={`flex-shrink-0 py-3 px-6 rounded-lg bg-gradient-to-r ${tierLevel.color} min-w-[120px] text-center`}>
-                          <h3 className={`font-bold text-lg ${tierLevel.textColor} tier-title`}>
-                            {tierLevel.key}
-                          </h3>
-                          <p className={`text-sm ${tierLevel.textColor} opacity-90`}>
-                            {tierLevel.name}
-                          </p>
-                          <p className={`text-xs ${tierLevel.textColor} opacity-75 mt-1`}>
-                            {tieredPlayers.length} players
-                          </p>
-                        </div>
-                        
-                        {/* Players Grid */}
-                        <div className="flex-1 min-h-[100px]">
-                          {tieredPlayers.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                              {tieredPlayers.map((player, index) => (
-                                <PlayerCard
-                                  key={player.id}
-                                  player={player}
-                                  ranking={index + 1}
-                                  isAdmin={isAdminMode}
-                                  onEdit={(player) => {
-                                    setEditingPlayer(player);
-                                    setShowAdminPanel(true);
-                                  }}
-                                  onDelete={(id) => deletePlayerMutation.mutate(id)}
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-center h-24 text-center text-muted-foreground">
-                              <p className="text-sm">No players in this tier</p>
-                            </div>
-                          )}
-                        </div>
+                    <CardHeader className="pb-3">
+                      <div className={`text-center py-3 px-4 rounded-lg bg-gradient-to-r ${tierLevel.color}`}>
+                        <h3 className={`font-bold text-lg ${tierLevel.textColor} tier-title`}>
+                          {tierLevel.key}
+                        </h3>
+                        <p className={`text-sm ${tierLevel.textColor} opacity-90`}>
+                          {tierLevel.name}
+                        </p>
+                        <p className={`text-xs ${tierLevel.textColor} opacity-75 mt-1`}>
+                          Players: {tieredPlayers.length}
+                        </p>
                       </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {tieredPlayers.length > 0 ? (
+                        tieredPlayers.map((player, index) => (
+                          <PlayerCard
+                            key={player.id}
+                            player={player}
+                            ranking={index + 1}
+                            isAdmin={isAdminMode}
+                            onEdit={(player) => {
+                              setEditingPlayer(player);
+                              setShowAdminPanel(true);
+                            }}
+                            onDelete={(id) => deletePlayerMutation.mutate(id)}
+                          />
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p className="text-sm">No players in this tier</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
