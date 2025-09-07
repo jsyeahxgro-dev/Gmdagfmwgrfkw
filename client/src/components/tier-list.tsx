@@ -244,7 +244,6 @@ export function TierList({ players, isLoading }: TierListProps) {
                           })}
                         </div>
                       </div>
-                      </div>
                       
                       {/* Admin Actions */}
                       {isAdminMode && (
