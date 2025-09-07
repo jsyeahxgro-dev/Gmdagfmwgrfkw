@@ -16,8 +16,10 @@ export default function Home() {
   const activePlayers = players;
 
   const sTierPlayers = activePlayers.filter(player => 
-    player.crystalTier === "HT1" || player.crystalTier === "LT1" ||
+    player.skywarsTier === "HT1" || player.skywarsTier === "LT1" ||
+    player.midfightTier === "HT1" || player.midfightTier === "LT1" ||
     player.uhcTier === "HT1" || player.uhcTier === "LT1" ||
+    player.nodebuffTier === "HT1" || player.nodebuffTier === "LT1" ||
     player.bedfightTier === "HT1" || player.bedfightTier === "LT1"
   ).length;
 
@@ -105,7 +107,7 @@ export default function Home() {
                   <Activity className="w-5 h-5 text-secondary" />
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-secondary">6</div>
+                  <div className="text-xl font-bold text-secondary">5</div>
                   <div className="text-muted-foreground text-sm">Game Modes</div>
                 </div>
               </div>
