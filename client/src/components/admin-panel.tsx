@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { X, Edit, Trash2, Plus } from "lucide-react";
-import { insertPlayerSchema, tierOptions, titleOptions, gameModes, tierLevels, type Player, type InsertPlayer, type GameMode } from "@shared/schema";
+import { insertPlayerSchema, tierOptions, titleOptions, gameModes, tierLevels, type Player, type InsertPlayer, type GameMode, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
 import { PlayerCard } from "./player-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { z } from "zod";
@@ -101,7 +101,7 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
     mutationFn: async (data: AddPlayerData) => {
       const playerData: InsertPlayer = {
         name: data.name,
-        title: data.title,
+        title: data.title, // Will be overridden below with calculated title
         skywarsTier: "NR",
         midfightTier: "NR",
         uhcTier: "NR",
@@ -114,6 +114,20 @@ function AddPlayerDialog({ open, onClose, onSuccess }: AddPlayerDialogProps) {
       if (gameModeField in playerData) {
         (playerData as any)[gameModeField] = data.tier;
       }
+      
+      // Calculate points and auto-assign title
+      const tempPlayer = { 
+        id: '', 
+        name: playerData.name,
+        title: playerData.title,
+        skywarsTier: playerData.skywarsTier || "NR",
+        midfightTier: playerData.midfightTier || "NR",
+        uhcTier: playerData.uhcTier || "NR",
+        nodebuffTier: playerData.nodebuffTier || "NR",
+        bedfightTier: playerData.bedfightTier || "NR"
+      };
+      const totalPoints = calculatePlayerPoints(tempPlayer);
+      playerData.title = getTitleFromPoints(totalPoints);
       
       const response = await apiRequest("POST", "/api/players", playerData);
       return response.json();
@@ -280,9 +294,21 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
     mutationFn: async (data: OverallEditData) => {
       if (!player) return;
       
+      // Calculate total points and determine title automatically
+      const playerWithTiers = {
+        ...player,
+        skywarsTier: data.skywarsTier,
+        midfightTier: data.midfightTier,
+        uhcTier: data.uhcTier,
+        nodebuffTier: data.nodebuffTier,
+        bedfightTier: data.bedfightTier,
+      };
+      const totalPoints = calculatePlayerPoints(playerWithTiers);
+      const autoTitle = getTitleFromPoints(totalPoints);
+      
       const updateData: Partial<InsertPlayer> = {
         name: data.name,
-        title: data.title,
+        title: autoTitle, // Auto-calculate title based on points
         skywarsTier: data.skywarsTier,
         midfightTier: data.midfightTier,
         uhcTier: data.uhcTier,
@@ -753,9 +779,16 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
   };
 
   const filteredPlayers = players.filter((player) => {
-    if (selectedGameMode === "overall") return true;
+    if (selectedGameMode === "overall") {
+      return calculatePlayerPoints(player) > 0; // Show players with points > 0
+    }
     const tier = getTierForGameMode(player, selectedGameMode);
     return tier !== "NR";
+  }).sort((a, b) => {
+    if (selectedGameMode === "overall") {
+      return calculatePlayerPoints(b) - calculatePlayerPoints(a); // Sort by points descending
+    }
+    return 0;
   });
 
   const getPlayersForTier = (tierKey: string) => {
@@ -961,9 +994,12 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                             
                             {/* Overall Tier and Mode Badges */}
                             <div className="flex flex-col items-end gap-2">
-                              {/* Overall Tier */}
+                              {/* Overall Points and Title */}
                               <div className="text-sm font-bold text-muted-foreground">
-                                Overall Tier: <span className="text-foreground">{getTierForGameMode(player, 'overall')}</span>
+                                Points: <span className="text-foreground">{calculatePlayerPoints(player)}</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Title: <span className="text-foreground">{getTitleFromPoints(calculatePlayerPoints(player))}</span>
                               </div>
                               
                               {/* Gamemode Badges */}

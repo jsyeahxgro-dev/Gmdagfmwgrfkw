@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Edit, Trash2, X } from "lucide-react";
 import type { Player } from "@shared/schema";
-import { getTierColor, gameModes, tierOptions } from "@shared/schema";
+import { getTierColor, gameModes, tierOptions, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
 
 interface PlayerCardProps {
   player: Player;
@@ -136,8 +136,8 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
   // Get player's current tier for color coding
   const getCurrentTier = () => {
     const tiers = [
-      player.skywarsTier, player.midfightTier, player.bridgeTier, player.crystalTier,
-      player.sumoTier, player.nodebuffTier, player.bedfightTier, player.uhcTier
+      player.skywarsTier, player.midfightTier, player.uhcTier,
+      player.nodebuffTier, player.bedfightTier
     ].filter(tier => tier && tier !== "NR");
     
     if (tiers.length === 0) return "NR";
