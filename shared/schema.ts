@@ -45,16 +45,21 @@ export const gameModes = [
 export type GameMode = typeof gameModes[number]['key'];
 
 export const tierLevels = [
-  { key: 'T1', name: 'TIER 1', tiers: ['HT1', 'MT1', 'LT1'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T2', name: 'TIER 2', tiers: ['HT2', 'MT2', 'LT2'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T3', name: 'TIER 3', tiers: ['HT3', 'MT3', 'LT3'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T4', name: 'TIER 4', tiers: ['HT4', 'MT4', 'LT4'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T5', name: 'TIER 5', tiers: ['HT5', 'MT5', 'LT5'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' }
+  { key: 'T1', name: 'Tier 1', tiers: ['HT1', 'MT1', 'LT1'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T2', name: 'Tier 2', tiers: ['HT2', 'MT2', 'LT2'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T3', name: 'Tier 3', tiers: ['HT3', 'MT3', 'LT3'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T4', name: 'Tier 4', tiers: ['HT4', 'MT4', 'LT4'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T5', name: 'Tier 5', tiers: ['HT5', 'MT5', 'LT5'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' }
 ] as const;
 
-export const getTierColor = (tier: string) => {
+export const getTierColor = (tier: string, isOverall: boolean = false) => {
+  if (isOverall && tier !== 'NR') {
+    // All tiers have same color in overall view except NR
+    return 'border-l-blue-500 bg-blue-50 dark:bg-blue-950';
+  }
+  
   if (tier.startsWith('HT')) return 'border-l-red-500 bg-red-50 dark:bg-red-950';
-  if (tier.startsWith('MIDT')) return 'border-l-orange-500 bg-orange-50 dark:bg-orange-950';
+  if (tier.startsWith('MT')) return 'border-l-orange-500 bg-orange-50 dark:bg-orange-950';
   if (tier.startsWith('LT')) return 'border-l-blue-500 bg-blue-50 dark:bg-blue-950';
   return 'border-l-gray-500 bg-gray-50 dark:bg-gray-950';
 };

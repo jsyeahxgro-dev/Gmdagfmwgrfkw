@@ -53,7 +53,10 @@ function DraggablePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameM
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: player.id });
+  } = useSortable({ 
+    id: player.id,
+    disabled: !isAdmin  // Only allow dragging in admin mode
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -61,8 +64,11 @@ function DraggablePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameM
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // Only add drag listeners if in admin mode
+  const dragProps = isAdmin ? { ...attributes, ...listeners } : {};
+
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...dragProps}>
       <PlayerCard
         player={player}
         ranking={ranking}
@@ -81,18 +87,21 @@ interface DroppableTierProps {
   tierKey: string;
   tierLevel: any;
   children: React.ReactNode;
+  isAdminMode: boolean;
 }
 
-function DroppableTier({ tierKey, tierLevel, children }: DroppableTierProps) {
+function DroppableTier({ tierKey, tierLevel, children, isAdminMode }: DroppableTierProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: `tier-${tierKey}`,
   });
+
+  const hasPlayers = React.Children.count(children) > 0;
 
   return (
     <Card 
       ref={setNodeRef}
       className={`min-h-[400px] bg-card/30 backdrop-blur-sm border-border/50 ${
-        isOver ? 'border-primary border-2' : ''
+        isOver && isAdminMode ? 'border-primary border-2' : ''
       }`}
       data-testid={`tier-section-${tierLevel.key}`}
     >
@@ -110,7 +119,17 @@ function DroppableTier({ tierKey, tierLevel, children }: DroppableTierProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {children}
+        {hasPlayers ? (
+          children
+        ) : isAdminMode ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">Drop players here</p>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">No players in this tier</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -354,10 +373,10 @@ export function TierList({ players, isLoading }: TierListProps) {
               <div className="space-y-4">
                 {filteredPlayers
                   .sort((a, b) => {
-                    const aHighest = getTierForGameMode(a, 'overall');
-                    const bHighest = getTierForGameMode(b, 'overall');
-                    const tierOrder = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5", "NR"];
-                    return tierOrder.indexOf(aHighest) - tierOrder.indexOf(bHighest);
+                    // Sort by points in descending order (highest first)
+                    const aPoints = calculatePlayerPoints(a);
+                    const bPoints = calculatePlayerPoints(b);
+                    return bPoints - aPoints;
                   })
                   .map((player, index) => (
                     <div key={player.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors" data-testid={`leaderboard-player-${player.id}`}>
@@ -412,9 +431,8 @@ export function TierList({ players, isLoading }: TierListProps) {
                               );
                             }
                             
-                            const tierColor = mode.tier.startsWith('HT') ? 'bg-gradient-to-r from-red-500 to-red-600 shadow-md border border-red-400' :
-                                            mode.tier.startsWith('MIDT') ? 'bg-gradient-to-r from-orange-500 to-yellow-500 shadow-md border border-orange-400' :
-                                            mode.tier.startsWith('LT') ? 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-md border border-blue-400' : 'bg-gradient-to-r from-gray-500 to-gray-600 shadow-md border border-gray-400';
+                            // All tiers have same color in overall view except NR
+                            const tierColor = 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-md border border-blue-400';
                             
                             return (
                               <div key={mode.key} className={`px-2 py-1 rounded-md ${tierColor} text-xs font-bold text-white backdrop-blur-sm`} title={`${mode.name}: ${mode.tier}`}>
@@ -477,27 +495,22 @@ export function TierList({ players, isLoading }: TierListProps) {
                           color: tierLevel.color,
                           textColor: tierLevel.textColor
                         }}
+                        isAdminMode={isAdminMode}
                       >
-                        {playersInTier.length > 0 ? (
-                          playersInTier.map((player, index) => (
-                            <DraggablePlayerCard
-                              key={player.id}
-                              player={player}
-                              ranking={index + 1}
-                              isAdmin={isAdminMode}
-                              gameMode={gameMode.key}
-                              onEdit={(player) => {
-                                setEditingPlayer(player);
-                                setShowAdminPanel(true);
-                              }}
-                              onDelete={(id) => deletePlayerMutation.mutate(id)}
-                            />
-                          ))
-                        ) : (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <p className="text-sm">Drop players here</p>
-                          </div>
-                        )}
+                        {playersInTier.map((player, index) => (
+                          <DraggablePlayerCard
+                            key={player.id}
+                            player={player}
+                            ranking={index + 1}
+                            isAdmin={isAdminMode}
+                            gameMode={gameMode.key}
+                            onEdit={(player) => {
+                              setEditingPlayer(player);
+                              setShowAdminPanel(true);
+                            }}
+                            onDelete={(id) => deletePlayerMutation.mutate(id)}
+                          />
+                        ))}
                       </DroppableTier>
                     </SortableContext>
                   );
