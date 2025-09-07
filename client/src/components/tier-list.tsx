@@ -231,18 +231,18 @@ export function TierList({ players, isLoading }: TierListProps) {
                           ].map(mode => {
                             if (!mode.tier || mode.tier === 'NR') {
                               return (
-                                <div key={mode.key} className="px-2 py-1 rounded bg-gray-500 text-xs font-bold text-white" title={`${mode.name}: Not Ranked`}>
+                                <div key={mode.key} className="px-2 py-1 rounded-md bg-gradient-to-r from-gray-600 to-gray-700 text-xs font-bold text-gray-200 shadow-sm border border-gray-500" title={`${mode.name}: Not Ranked`}>
                                   {mode.abbr}: NR
                                 </div>
                               );
                             }
                             
-                            const tierColor = mode.tier.startsWith('HT') ? 'bg-red-500' :
-                                            mode.tier.startsWith('MIDT') ? 'bg-orange-500' :
-                                            mode.tier.startsWith('LT') ? 'bg-blue-500' : 'bg-gray-500';
+                            const tierColor = mode.tier.startsWith('HT') ? 'bg-gradient-to-r from-red-500 to-red-600 shadow-md border border-red-400' :
+                                            mode.tier.startsWith('MIDT') ? 'bg-gradient-to-r from-orange-500 to-yellow-500 shadow-md border border-orange-400' :
+                                            mode.tier.startsWith('LT') ? 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-md border border-blue-400' : 'bg-gradient-to-r from-gray-500 to-gray-600 shadow-md border border-gray-400';
                             
                             return (
-                              <div key={mode.key} className={`px-2 py-1 rounded ${tierColor} text-xs font-bold text-white`} title={`${mode.name}: ${mode.tier}`}>
+                              <div key={mode.key} className={`px-2 py-1 rounded-md ${tierColor} text-xs font-bold text-white backdrop-blur-sm`} title={`${mode.name}: ${mode.tier}`}>
                                 {mode.abbr}: {mode.tier}
                               </div>
                             );
