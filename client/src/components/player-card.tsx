@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Edit, Trash2 } from "lucide-react";
 import type { Player } from "@shared/schema";
+import { getTierColor, gameModes } from "@shared/schema";
 
 interface PlayerCardProps {
   player: Player;
@@ -34,8 +35,27 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete 
     }
   };
 
+  // Get player's current tier for color coding
+  const getCurrentTier = () => {
+    const tiers = [
+      player.skywarsTier, player.midfightTier, player.bridgeTier, player.crystalTier,
+      player.sumoTier, player.nodebuffTier, player.bedfightTier, player.uhcTier
+    ].filter(tier => tier && tier !== "NR");
+    
+    if (tiers.length === 0) return "NR";
+    
+    const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5"];
+    for (const tier of tierOrder) {
+      if (tiers.includes(tier)) return tier;
+    }
+    return "NR";
+  };
+  
+  const currentTier = getCurrentTier();
+  const tierColorClass = getTierColor(currentTier);
+
   return (
-    <Card className="group relative hover:shadow-lg transition-all duration-300 bg-card/80 backdrop-blur-sm border-border/50 hover:bg-card/90" data-testid={`player-card-${player.id}`}>
+    <Card className={`group relative hover:shadow-lg transition-all duration-300 bg-card/80 backdrop-blur-sm border-border/50 hover:bg-card/90 border-l-4 ${tierColorClass}`} data-testid={`player-card-${player.id}`}>
       <CardContent className="p-3">
         <div className="flex items-center space-x-3 mb-2">
           <Avatar className="w-10 h-10 border-2 border-border/30">
@@ -73,21 +93,20 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete 
             {/* Show gamemode tiers in overall ranking */}
             {window.location.pathname === "/" && (
               <div className="flex flex-wrap gap-1 mt-1">
-                {player.skywarsTier !== "NR" && (
-                  <Badge variant="outline" className="text-xs px-1 py-0">
-                    Sky: {player.skywarsTier}
+                {[
+                  { key: 'skywars', tier: player.skywarsTier, abbr: 'SW' },
+                  { key: 'midfight', tier: player.midfightTier, abbr: 'Midf' },
+                  { key: 'nodebuff', tier: player.nodebuffTier, abbr: 'NoDb' },
+                  { key: 'bedfight', tier: player.bedfightTier, abbr: 'Bed' },
+                  { key: 'uhc', tier: player.uhcTier, abbr: 'UHC' },
+                  { key: 'bridge', tier: player.bridgeTier, abbr: 'Br' },
+                  { key: 'crystal', tier: player.crystalTier, abbr: 'Crys' },
+                  { key: 'sumo', tier: player.sumoTier, abbr: 'Sumo' }
+                ].filter(mode => mode.tier && mode.tier !== "NR").map(mode => (
+                  <Badge key={mode.key} variant="outline" className="text-xs px-1 py-0">
+                    {mode.abbr}: {mode.tier}
                   </Badge>
-                )}
-                {player.midfightTier !== "NR" && (
-                  <Badge variant="outline" className="text-xs px-1 py-0">
-                    Mid: {player.midfightTier}
-                  </Badge>
-                )}
-                {player.nodebuffTier !== "NR" && (
-                  <Badge variant="outline" className="text-xs px-1 py-0">
-                    NoDb: {player.nodebuffTier}
-                  </Badge>
-                )}
+                ))}
               </div>
             )}
           </div>

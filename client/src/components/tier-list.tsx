@@ -10,7 +10,7 @@ import { AdminPanel } from "./admin-panel";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Player, GameMode } from "@shared/schema";
-import { gameModes, tierLevels } from "@shared/schema";
+import { gameModes, tierLevels, getTierColor } from "@shared/schema";
 
 interface TierListProps {
   players: Player[];
@@ -59,9 +59,9 @@ export function TierList({ players, isLoading }: TierListProps) {
     switch (gameMode) {
       case "skywars": return player.skywarsTier;
       case "midfight": return player.midfightTier;
-      case "bridge": return player.bridgeTier;
-      case "crystal": return player.crystalTier;
-      case "sumo": return player.sumoTier;
+      case "bridge": return player.bridgeTier || "NR";
+      case "crystal": return player.crystalTier || "NR";
+      case "sumo": return player.sumoTier || "NR";
       case "nodebuff": return player.nodebuffTier;
       case "bedfight": return player.bedfightTier;
       case "uhc": return player.uhcTier;
@@ -75,8 +75,8 @@ export function TierList({ players, isLoading }: TierListProps) {
         
         if (tiers.length === 0) return "NR";
         
-        // Return highest tier (HT1 > LT1 > HT2 > LT2 etc.)
-        const tierOrder = ["HT1", "LT1", "HT2", "LT2", "HT3", "LT3", "LT4", "LT5"];
+        // Return highest tier (HT1 > MIDT1 > LT1 > HT2 > MIDT2 > LT2 etc.)
+        const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5"];
         for (const tier of tierOrder) {
           if (tiers.includes(tier)) return tier;
         }
@@ -167,49 +167,56 @@ export function TierList({ players, isLoading }: TierListProps) {
 
         {(gameModes as readonly any[]).map((gameMode: any) => (
           <TabsContent key={gameMode.key} value={gameMode.key} className="space-y-6">
-            {/* Tier Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Horizontal Tier List */}
+            <div className="space-y-6">
               {tierLevels.map((tierLevel) => {
                 const tieredPlayers = getPlayersForTier(tierLevel.key);
                 return (
                   <Card 
                     key={tierLevel.key} 
-                    className="min-h-[400px] bg-card/30 backdrop-blur-sm border-border/50"
+                    className="bg-card/30 backdrop-blur-sm border-border/50"
                     data-testid={`tier-section-${tierLevel.key}`}
                   >
-                    <CardHeader className="pb-3">
-                      <div className={`text-center py-3 px-4 rounded-lg bg-gradient-to-r ${tierLevel.color}`}>
-                        <h3 className={`font-bold text-lg ${tierLevel.textColor} tier-title`}>
-                          {tierLevel.key}
-                        </h3>
-                        <p className={`text-sm ${tierLevel.textColor} opacity-90`}>
-                          {tierLevel.name}
-                        </p>
-                        <p className={`text-xs ${tierLevel.textColor} opacity-75 mt-1`}>
-                          Players: {tieredPlayers.length}
-                        </p>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {tieredPlayers.length > 0 ? (
-                        tieredPlayers.map((player, index) => (
-                          <PlayerCard
-                            key={player.id}
-                            player={player}
-                            ranking={index + 1}
-                            isAdmin={isAdminMode}
-                            onEdit={(player) => {
-                              setEditingPlayer(player);
-                              setShowAdminPanel(true);
-                            }}
-                            onDelete={(id) => deletePlayerMutation.mutate(id)}
-                          />
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p className="text-sm">No players in this tier</p>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        {/* Tier Label */}
+                        <div className={`flex-shrink-0 py-3 px-6 rounded-lg bg-gradient-to-r ${tierLevel.color} min-w-[120px] text-center`}>
+                          <h3 className={`font-bold text-lg ${tierLevel.textColor} tier-title`}>
+                            {tierLevel.key}
+                          </h3>
+                          <p className={`text-sm ${tierLevel.textColor} opacity-90`}>
+                            {tierLevel.name}
+                          </p>
+                          <p className={`text-xs ${tierLevel.textColor} opacity-75 mt-1`}>
+                            {tieredPlayers.length} players
+                          </p>
                         </div>
-                      )}
+                        
+                        {/* Players Grid */}
+                        <div className="flex-1 min-h-[100px]">
+                          {tieredPlayers.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                              {tieredPlayers.map((player, index) => (
+                                <PlayerCard
+                                  key={player.id}
+                                  player={player}
+                                  ranking={index + 1}
+                                  isAdmin={isAdminMode}
+                                  onEdit={(player) => {
+                                    setEditingPlayer(player);
+                                    setShowAdminPanel(true);
+                                  }}
+                                  onDelete={(id) => deletePlayerMutation.mutate(id)}
+                                />
+                              ))
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center h-24 text-center text-muted-foreground">
+                              <p className="text-sm">No players in this tier</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 );
