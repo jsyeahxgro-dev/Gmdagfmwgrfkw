@@ -219,20 +219,19 @@ export function TierList({ players, isLoading }: TierListProps) {
       case "bedfight": return player.bedfightTier;
       case "uhc": return player.uhcTier;
       case "overall": 
-        // For overall, use highest tier across all game modes
-        const tiers = [
-          player.skywarsTier, player.midfightTier, player.nodebuffTier,
-          player.bedfightTier, player.uhcTier
-        ].filter(tier => tier !== "NR");
+        // For overall, calculate tier based on total points
+        const totalPoints = calculatePlayerPoints(player);
         
-        if (tiers.length === 0) return "NR";
+        if (totalPoints === 0) return "NR";
         
-        // Return highest tier (HT1 > MT1 > LT1 > HT2 > MT2 > LT2 etc.)
-        const tierOrder = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5"];
-        for (const tier of tierOrder) {
-          if (tiers.includes(tier)) return tier;
-        }
-        return "NR";
+        // Tier based on points (using same logic as title calculation but for tiers)
+        if (totalPoints >= 450) return "HT1";
+        if (totalPoints >= 350) return "HT2";
+        if (totalPoints >= 250) return "HT3";
+        if (totalPoints >= 150) return "LT1";
+        if (totalPoints >= 100) return "LT2";
+        if (totalPoints >= 50) return "LT3";
+        return "LT4";
       default: return "NR";
     }
   };
@@ -246,8 +245,8 @@ export function TierList({ players, isLoading }: TierListProps) {
       return (tierLevel.tiers as readonly string[]).includes(playerTier);
     });
 
-    // Sort players within the tier level according to tier order (HT1 > MT1 > LT1, etc.)
-    const tierOrder = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5", "NR"];
+    // Sort players within the tier level according to tier order (HT1 > MIDT1 > LT1, etc.)
+    const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
     return tieredPlayers.sort((a, b) => {
       const aTier = getTierForGameMode(a, selectedGameMode);
       const bTier = getTierForGameMode(b, selectedGameMode);
@@ -271,7 +270,7 @@ export function TierList({ players, isLoading }: TierListProps) {
         const bIndex = savedOrder.indexOf(b.id);
         if (aIndex === -1 && bIndex === -1) {
           // Both players are new, maintain natural sort
-          const tierOrder = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5", "NR"];
+          const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
           const aTier = getTierForGameMode(a, selectedGameMode);
           const bTier = getTierForGameMode(b, selectedGameMode);
           return tierOrder.indexOf(aTier) - tierOrder.indexOf(bTier);
