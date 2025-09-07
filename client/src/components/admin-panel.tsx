@@ -444,21 +444,11 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
     mutationFn: async (data: EditPlayerData) => {
       if (!player || !gameMode) return;
       
-      // Create updated player object for points calculation
-      const updatedPlayer = { ...player, name: data.name };
-      const gameModeField = `${gameMode}Tier` as keyof Player;
-      (updatedPlayer as any)[gameModeField] = data.tier;
-      
-      // Auto-calculate title based on new points
-      const totalPoints = calculatePlayerPoints(updatedPlayer);
-      const autoTitle = getTitleFromPoints(totalPoints);
-      
-      const updateData: Partial<InsertPlayer> = {
-        name: data.name,
-      };
-      (updateData as any)[gameModeField] = data.tier;
-      
-      const response = await apiRequest("PATCH", `/api/players/${player.id}`, updateData);
+      // Update only the specific tier for the gamemode, preserving all other tiers
+      const response = await apiRequest("PATCH", `/api/players/${player.id}/tier`, { 
+        gameMode, 
+        tier: data.tier 
+      });
       return response.json();
     },
     onSuccess: () => {
