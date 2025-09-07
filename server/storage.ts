@@ -393,4 +393,4 @@ export class DbStorage implements IStorage {
   }
 }
 
-export const storage = new DbStorage();
+export const storage = new MemStorage();
