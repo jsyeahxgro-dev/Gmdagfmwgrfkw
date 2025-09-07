@@ -255,6 +255,37 @@ export function TierList({ players, isLoading }: TierListProps) {
     });
   };
 
+  // Add support for custom player ordering within tiers
+  const [playerOrders, setPlayerOrders] = useState<Record<string, string[]>>({});
+
+  const getOrderedPlayersForTier = (tierKey: string) => {
+    const players = getPlayersForTier(tierKey);
+    const orderKey = `${selectedGameMode}-${tierKey}`;
+    const savedOrder = playerOrders[orderKey];
+    
+    if (savedOrder) {
+      // Sort according to saved order, putting new players at the end
+      const orderedPlayers = [...players];
+      orderedPlayers.sort((a, b) => {
+        const aIndex = savedOrder.indexOf(a.id);
+        const bIndex = savedOrder.indexOf(b.id);
+        if (aIndex === -1 && bIndex === -1) {
+          // Both players are new, maintain natural sort
+          const tierOrder = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5", "NR"];
+          const aTier = getTierForGameMode(a, selectedGameMode);
+          const bTier = getTierForGameMode(b, selectedGameMode);
+          return tierOrder.indexOf(aTier) - tierOrder.indexOf(bTier);
+        }
+        if (aIndex === -1) return 1; // New players go to end
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      });
+      return orderedPlayers;
+    }
+    
+    return players;
+  };
+
   // Drag handlers
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -270,23 +301,60 @@ export function TierList({ players, isLoading }: TierListProps) {
 
     const playerId = active.id as string;
     const overId = over.id as string;
+    const activePlayer = filteredPlayers.find(p => p.id === playerId);
+    if (!activePlayer) return;
 
-    // Extract tier from the droppable ID (format: "tier-{tierName}")
+    // Handle dropping on tier areas (moving to different tier)
     if (overId.startsWith("tier-")) {
-      const targetTier = overId.replace("tier-", "");
-      
-      // Find which tier level this belongs to
-      const tierLevel = tierLevels.find(level => 
-        (level.tiers as readonly string[]).includes(targetTier)
-      );
+      const targetTierKey = overId.replace("tier-", "");
+      const tierLevel = tierLevels.find(t => t.key === targetTierKey);
       
       if (tierLevel && selectedGameMode !== "overall") {
+        // Move to first tier in the target tier level (e.g., T1 -> HT1)
+        const firstTierInLevel = (tierLevel.tiers as readonly string[])[0];
+        
         updatePlayerTierMutation.mutate({
           playerId,
           gameMode: selectedGameMode,
-          tier: targetTier,
+          tier: firstTierInLevel,
         });
       }
+      return;
+    }
+
+    // Handle reordering within same tier level
+    const overPlayer = filteredPlayers.find(p => p.id === overId);
+    if (!overPlayer) return;
+
+    const activeTier = getTierForGameMode(activePlayer, selectedGameMode);
+    const overTier = getTierForGameMode(overPlayer, selectedGameMode);
+
+    // Find which tier level both players belong to
+    const activeTierLevel = tierLevels.find(t => (t.tiers as readonly string[]).includes(activeTier));
+    const overTierLevel = tierLevels.find(t => (t.tiers as readonly string[]).includes(overTier));
+
+    if (!activeTierLevel || !overTierLevel || activeTierLevel.key !== overTierLevel.key) {
+      return; // Can only reorder within the same tier level
+    }
+
+    // Update local order state
+    const tierKey = activeTierLevel.key;
+    const orderKey = `${selectedGameMode}-${tierKey}`;
+    const currentPlayers = getOrderedPlayersForTier(tierKey);
+    const activeIndex = currentPlayers.findIndex(p => p.id === playerId);
+    const overIndex = currentPlayers.findIndex(p => p.id === overId);
+
+    if (activeIndex !== -1 && overIndex !== -1) {
+      const newOrder = arrayMove(
+        currentPlayers.map(p => p.id),
+        activeIndex,
+        overIndex
+      );
+      
+      setPlayerOrders(prev => ({
+        ...prev,
+        [orderKey]: newOrder
+      }));
     }
   };
 
@@ -469,52 +537,39 @@ export function TierList({ players, isLoading }: TierListProps) {
         {/* Individual Gamemode Tier Lists */}
         {(gameModes as readonly any[]).filter((mode: any) => mode.key !== 'overall').map((gameMode: any) => (
           <TabsContent key={gameMode.key} value={gameMode.key} className="space-y-6">
-            {/* Vertical Tier List */}
+            {/* Vertical Tier List - 5 Main Tiers */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               {tierLevels.map((tierLevel) => {
-                const tieredPlayers = getPlayersForTier(tierLevel.key);
-                // Create droppable areas for each specific tier within this tier level
-                const tierOptions = tierLevel.tiers as readonly string[];
+                const playersInTier = getOrderedPlayersForTier(tierLevel.key);
                 
-                return tierOptions.map((tierOption) => {
-                  const playersInTier = tieredPlayers.filter(player => 
-                    getTierForGameMode(player, selectedGameMode) === tierOption
-                  );
-                  
-                  return (
-                    <SortableContext 
-                      key={tierOption} 
-                      items={playersInTier.map(p => p.id)}
-                      strategy={verticalListSortingStrategy}
+                return (
+                  <SortableContext 
+                    key={tierLevel.key} 
+                    items={playersInTier.map(p => p.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <DroppableTier 
+                      tierKey={tierLevel.key}
+                      tierLevel={tierLevel}
+                      isAdminMode={isAdminMode}
                     >
-                      <DroppableTier 
-                        tierKey={tierOption}
-                        tierLevel={{
-                          key: tierOption,
-                          name: tierOption,
-                          color: tierLevel.color,
-                          textColor: tierLevel.textColor
-                        }}
-                        isAdminMode={isAdminMode}
-                      >
-                        {playersInTier.map((player, index) => (
-                          <DraggablePlayerCard
-                            key={player.id}
-                            player={player}
-                            ranking={index + 1}
-                            isAdmin={isAdminMode}
-                            gameMode={gameMode.key}
-                            onEdit={(player) => {
-                              setEditingPlayer(player);
-                              setShowAdminPanel(true);
-                            }}
-                            onDelete={(id) => deletePlayerMutation.mutate(id)}
-                          />
-                        ))}
-                      </DroppableTier>
-                    </SortableContext>
-                  );
-                });
+                      {playersInTier.map((player, index) => (
+                        <DraggablePlayerCard
+                          key={player.id}
+                          player={player}
+                          ranking={index + 1}
+                          isAdmin={isAdminMode}
+                          gameMode={gameMode.key}
+                          onEdit={(player) => {
+                            setEditingPlayer(player);
+                            setShowAdminPanel(true);
+                          }}
+                          onDelete={(id) => deletePlayerMutation.mutate(id)}
+                        />
+                      ))}
+                    </DroppableTier>
+                  </SortableContext>
+                );
               })}
             </div>
           </TabsContent>
