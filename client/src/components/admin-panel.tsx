@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { X, Edit, Trash2, Plus } from "lucide-react";
+import { X, Edit, Trash2, Plus, ChevronUp, ChevronDown } from "lucide-react";
 import { insertPlayerSchema, tierOptions, gameModes, tierLevels, type Player, type InsertPlayer, type GameMode, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
 import { PlayerCard } from "./player-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -750,6 +750,47 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     }
   };
 
+  const handlePlayerReorder = async (player: Player, direction: 'up' | 'down', sortedPlayers: Player[], currentIndex: number) => {
+    if (direction === 'up' && currentIndex === 0) return;
+    if (direction === 'down' && currentIndex === sortedPlayers.length - 1) return;
+    
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const targetPlayer = sortedPlayers[targetIndex];
+    
+    // Get overall tier for both players
+    const currentTier = getTierForGameMode(player, 'overall');
+    const targetTier = getTierForGameMode(targetPlayer, 'overall');
+    
+    // Get tier hierarchy for validation  
+    const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
+    const currentTierLevel = tierOrder.indexOf(currentTier);
+    const targetTierLevel = tierOrder.indexOf(targetTier);
+    
+    // Check if move would violate tier hierarchy
+    if (direction === 'up' && currentTierLevel > targetTierLevel) {
+      toast({
+        title: "Cannot move up",
+        description: `Cannot move ${currentTier} player above ${targetTier} player. First change the tier to ${targetTier} or higher to enable this move.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (direction === 'down' && currentTierLevel < targetTierLevel) {
+      toast({
+        title: "Cannot move down", 
+        description: `Cannot move ${currentTier} player below ${targetTier} player. First change the tier to ${targetTier} or lower to enable this move.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Reorder functionality",
+      description: "Player reordering is available via drag and drop on the main tier list view. Use the tier list to reorder players within and between tiers.",
+    });
+  };
+
   const filteredPlayers = players.filter((player) => {
     if (selectedGameMode === "overall") {
       return calculatePlayerPoints(player) > 0; // Show players with points > 0
@@ -941,14 +982,14 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                 <Card className="bg-card/30 backdrop-blur-sm border-border/50">
                   <CardContent className="p-6">
                     <div className="space-y-4">
-                      {filteredPlayers
-                        .sort((a, b) => {
+                      {(() => {
+                        const sortedPlayers = filteredPlayers.sort((a, b) => {
                           const aHighest = getTierForGameMode(a, 'overall');
                           const bHighest = getTierForGameMode(b, 'overall');
                           const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
                           return tierOrder.indexOf(aHighest) - tierOrder.indexOf(bHighest);
-                        })
-                        .map((player, index) => (
+                        });
+                        return sortedPlayers.map((player, index) => (
                           <div key={player.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors" data-testid={`admin-leaderboard-player-${player.id}`}>
                             {/* Ranking */}
                             <div className="w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg bg-muted text-muted-foreground minecraft-font">
@@ -1011,6 +1052,36 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                             
                             {/* Admin Actions */}
                             <div className="flex gap-2">
+                              {/* Reorder Buttons */}
+                              <div className="flex flex-col gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePlayerReorder(player, 'up', sortedPlayers, index);
+                                  }}
+                                  disabled={index === 0}
+                                  className="w-8 h-6 p-0"
+                                  data-testid={`admin-reorder-up-${player.id}`}
+                                >
+                                  <ChevronUp className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePlayerReorder(player, 'down', sortedPlayers, index);
+                                  }}
+                                  disabled={index === sortedPlayers.length - 1}
+                                  className="w-8 h-6 p-0"
+                                  data-testid={`admin-reorder-down-${player.id}`}
+                                >
+                                  <ChevronDown className="w-3 h-3" />
+                                </Button>
+                              </div>
+                              
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1035,7 +1106,8 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                               </Button>
                             </div>
                           </div>
-                        ))}
+                        ));
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
