@@ -62,6 +62,7 @@ const addPlayerSchema = z.object({
 });
 
 const editPlayerSchema = z.object({
+  name: z.string().min(1, "Player name is required"),
   tier: z.string().min(1, "Tier is required"),
 });
 
@@ -490,6 +491,7 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
   const form = useForm<EditPlayerData>({
     resolver: zodResolver(editPlayerSchema),
     defaultValues: {
+      name: "",
       tier: "LT5",
     },
   });
@@ -498,11 +500,20 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
     mutationFn: async (data: EditPlayerData) => {
       if (!player || !gameMode) return;
       
-      const updateData: Partial<InsertPlayer> = {};
-      const gameModeField = `${gameMode}Tier` as keyof InsertPlayer;
-      if (gameModeField in updateData || true) {
-        (updateData as any)[gameModeField] = data.tier;
-      }
+      // Create updated player object for points calculation
+      const updatedPlayer = { ...player, name: data.name };
+      const gameModeField = `${gameMode}Tier` as keyof Player;
+      (updatedPlayer as any)[gameModeField] = data.tier;
+      
+      // Auto-calculate title based on new points
+      const totalPoints = calculatePlayerPoints(updatedPlayer);
+      const autoTitle = getTitleFromPoints(totalPoints);
+      
+      const updateData: Partial<InsertPlayer> = {
+        name: data.name,
+        title: autoTitle,
+      };
+      (updateData as any)[gameModeField] = data.tier;
       
       const response = await apiRequest("PATCH", `/api/players/${player.id}`, updateData);
       return response.json();
@@ -531,7 +542,7 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
   useEffect(() => {
     if (player && gameMode && open) {
       const currentTier = getTierForGameModeLocal(player, gameMode);
-      form.reset({ tier: currentTier });
+      form.reset({ name: player.name, tier: currentTier });
     }
   }, [player, gameMode, open, form]);
 
@@ -550,7 +561,7 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-md" data-testid="edit-player-dialog">
         <DialogHeader>
-          <DialogTitle>Edit Player Tier</DialogTitle>
+          <DialogTitle>Edit Player</DialogTitle>
         </DialogHeader>
         {player && gameMode && (
           <>
@@ -575,10 +586,23 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Player Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} data-testid="edit-player-name-input" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="tier"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>New Tier</FormLabel>
+                      <FormLabel>Tier for {gameModes.find(m => m.key === gameMode)?.name}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="edit-player-tier-select">
