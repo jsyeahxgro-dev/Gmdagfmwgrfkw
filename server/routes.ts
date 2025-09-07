@@ -36,8 +36,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if player name already exists
       const existingPlayer = await storage.getPlayerByName(validatedData.name);
       if (existingPlayer) {
-        // Update existing player with new tier data, keeping existing tiers intact
-        const updatedPlayer = await storage.updatePlayer(existingPlayer.id, validatedData);
+        // Only update non-NR tiers to preserve existing player data
+        const updateData: Partial<typeof validatedData> = {
+          name: validatedData.name
+        };
+        
+        // Only add tier fields that are not "NR" to preserve existing tiers
+        if (validatedData.skywarsTier && validatedData.skywarsTier !== "NR") {
+          updateData.skywarsTier = validatedData.skywarsTier;
+        }
+        if (validatedData.midfightTier && validatedData.midfightTier !== "NR") {
+          updateData.midfightTier = validatedData.midfightTier;
+        }
+        if (validatedData.uhcTier && validatedData.uhcTier !== "NR") {
+          updateData.uhcTier = validatedData.uhcTier;
+        }
+        if (validatedData.nodebuffTier && validatedData.nodebuffTier !== "NR") {
+          updateData.nodebuffTier = validatedData.nodebuffTier;
+        }
+        if (validatedData.bedfightTier && validatedData.bedfightTier !== "NR") {
+          updateData.bedfightTier = validatedData.bedfightTier;
+        }
+        
+        const updatedPlayer = await storage.updatePlayer(existingPlayer.id, updateData);
         return res.status(200).json(updatedPlayer);
       }
 
