@@ -7,14 +7,11 @@ export const players = pgTable("players", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   title: text("title").notNull(),
-  bridgeTier: text("bridge_tier").notNull().default("NR"),
   skywarsTier: text("skywars_tier").notNull().default("NR"),
-  crystalTier: text("crystal_tier").notNull().default("NR"),
   midfightTier: text("midfight_tier").notNull().default("NR"),
   uhcTier: text("uhc_tier").notNull().default("NR"),
   nodebuffTier: text("nodebuff_tier").notNull().default("NR"),
   bedfightTier: text("bedfight_tier").notNull().default("NR"),
-  sumoTier: text("sumo_tier").notNull().default("NR"),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).omit({
@@ -25,18 +22,24 @@ export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type Player = typeof players.$inferSelect;
 
 export const tierOptions = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"] as const;
-export const titleOptions = ["Combat Grandmaster", "Combat Master", "Combat Ace", "Combat Specialist"] as const;
+export const titleOptions = [
+  "Rookie",
+  "Combat Novice", 
+  "Combat Cadet",
+  "Combat Specialist",
+  "Combat Elite",
+  "Combat Ace",
+  "Combat Master",
+  "Combat Grandmaster"
+] as const;
 
 export const gameModes = [
   { key: 'overall', name: 'Overall', icon: '🏆', abbr: 'Overall' },
-  { key: 'bridge', name: 'Bridge', icon: '🌉', abbr: 'Bridge' },
   { key: 'skywars', name: 'Skywars', icon: '☁️', abbr: 'SW' },
-  { key: 'crystal', name: 'Crystal', icon: '💎', abbr: 'Crystal' },
   { key: 'midfight', name: 'Midfight', icon: '⚔️', abbr: 'Midf' },
   { key: 'uhc', name: 'UHC', icon: '💀', abbr: 'UHC' },
   { key: 'nodebuff', name: 'Nodebuff', icon: '🛡️', abbr: 'NoDb' },
-  { key: 'bedfight', name: 'Bedfight', icon: '🛏️', abbr: 'Bed' },
-  { key: 'sumo', name: 'Sumo', icon: '🥋', abbr: 'Sumo' }
+  { key: 'bedfight', name: 'Bedfight', icon: '🛏️', abbr: 'Bed' }
 ] as const;
 
 export type GameMode = typeof gameModes[number]['key'];
@@ -54,4 +57,37 @@ export const getTierColor = (tier: string) => {
   if (tier.startsWith('MIDT')) return 'border-l-orange-500 bg-orange-50 dark:bg-orange-950';
   if (tier.startsWith('LT')) return 'border-l-blue-500 bg-blue-50 dark:bg-blue-950';
   return 'border-l-gray-500 bg-gray-50 dark:bg-gray-950';
+};
+
+// Points system mapping
+export const tierPoints = {
+  'HT1': 100, 'MIDT1': 80, 'LT1': 60,
+  'HT2': 60,  'MIDT2': 45, 'LT2': 30,
+  'HT3': 30,  'MIDT3': 20, 'LT3': 10,
+  'HT4': 15,  'MIDT4': 10, 'LT4': 5,
+  'HT5': 8,   'MIDT5': 5,  'LT5': 2,
+  'NR': 0
+} as const;
+
+export const getPointsForTier = (tier: string): number => {
+  return tierPoints[tier as keyof typeof tierPoints] || 0;
+};
+
+export const calculatePlayerPoints = (player: Player): number => {
+  return getPointsForTier(player.skywarsTier) +
+         getPointsForTier(player.midfightTier) +
+         getPointsForTier(player.uhcTier) +
+         getPointsForTier(player.nodebuffTier) +
+         getPointsForTier(player.bedfightTier);
+};
+
+export const getTitleFromPoints = (points: number): string => {
+  if (points >= 450) return 'Combat Grandmaster';
+  if (points >= 375) return 'Combat Master';
+  if (points >= 300) return 'Combat Ace';
+  if (points >= 225) return 'Combat Elite';
+  if (points >= 150) return 'Combat Specialist';
+  if (points >= 100) return 'Combat Cadet';
+  if (points >= 50) return 'Combat Novice';
+  return 'Rookie';
 };
