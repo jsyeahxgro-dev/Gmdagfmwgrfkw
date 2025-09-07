@@ -81,6 +81,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reorder player tier
+  app.patch("/api/players/:id/tier", async (req, res) => {
+    try {
+      const { gameMode, tier } = req.body;
+      if (!gameMode || !tier) {
+        return res.status(400).json({ error: "gameMode and tier are required" });
+      }
+
+      const player = await storage.getPlayer(req.params.id);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+
+      // Update the specific game mode tier
+      const updateData: Partial<InsertPlayer> = {};
+      const gameModeField = `${gameMode}Tier` as keyof typeof updateData;
+      (updateData as any)[gameModeField] = tier;
+
+      const updatedPlayer = await storage.updatePlayer(req.params.id, updateData);
+      res.json(updatedPlayer);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update player tier" });
+    }
+  });
+
   // Admin authentication
   app.post("/api/admin/auth", (req, res) => {
     const { password } = req.body;

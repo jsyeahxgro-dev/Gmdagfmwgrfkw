@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,108 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Player, GameMode } from "@shared/schema";
 import { gameModes, tierLevels, getTierColor, calculatePlayerPoints } from "@shared/schema";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useDroppable } from "@dnd-kit/core";
+
+// Draggable Player Component
+interface DraggablePlayerCardProps {
+  player: Player;
+  ranking?: number;
+  isAdmin?: boolean;
+  onEdit?: (player: Player) => void;
+  onDelete?: (id: string) => void;
+  gameMode?: string;
+}
+
+function DraggablePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameMode }: DraggablePlayerCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: player.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <PlayerCard
+        player={player}
+        ranking={ranking}
+        isAdmin={isAdmin}
+        simplified={true}
+        gameMode={gameMode}
+        onEdit={onEdit}
+        onDelete={onDelete}
+      />
+    </div>
+  );
+}
+
+// Droppable Tier Component
+interface DroppableTierProps {
+  tierKey: string;
+  tierLevel: any;
+  children: React.ReactNode;
+}
+
+function DroppableTier({ tierKey, tierLevel, children }: DroppableTierProps) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `tier-${tierKey}`,
+  });
+
+  return (
+    <Card 
+      ref={setNodeRef}
+      className={`min-h-[400px] bg-card/30 backdrop-blur-sm border-border/50 ${
+        isOver ? 'border-primary border-2' : ''
+      }`}
+      data-testid={`tier-section-${tierLevel.key}`}
+    >
+      <CardHeader className="pb-3">
+        <div className={`text-center py-3 px-4 rounded-lg bg-gradient-to-r ${tierLevel.color}`}>
+          <h3 className={`font-bold text-lg ${tierLevel.textColor} tier-title`}>
+            {tierLevel.key}
+          </h3>
+          <p className={`text-sm ${tierLevel.textColor} opacity-90`}>
+            {tierLevel.name}
+          </p>
+          <p className={`text-xs ${tierLevel.textColor} opacity-75 mt-1`}>
+            Players: {React.Children.count(children)}
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
 
 interface TierListProps {
   players: Player[];
@@ -24,6 +127,7 @@ export function TierList({ players, isLoading }: TierListProps) {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activePlayer, setActivePlayer] = useState<Player | null>(null);
   
   // Handle admin mode state from admin panel
   const handleAdminLogin = () => {
@@ -33,6 +137,15 @@ export function TierList({ players, isLoading }: TierListProps) {
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const deletePlayerMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -49,6 +162,27 @@ export function TierList({ players, isLoading }: TierListProps) {
       toast({
         title: "Error",
         description: "Failed to delete player",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePlayerTierMutation = useMutation({
+    mutationFn: async ({ playerId, gameMode, tier }: { playerId: string; gameMode: string; tier: string }) => {
+      const response = await apiRequest("PATCH", `/api/players/${playerId}/tier`, { gameMode, tier });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      toast({
+        title: "Player moved",
+        description: "Player tier has been updated",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update player tier",
         variant: "destructive",
       });
     },
@@ -74,8 +208,8 @@ export function TierList({ players, isLoading }: TierListProps) {
         
         if (tiers.length === 0) return "NR";
         
-        // Return highest tier (HT1 > MIDT1 > LT1 > HT2 > MIDT2 > LT2 etc.)
-        const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5"];
+        // Return highest tier (HT1 > MT1 > LT1 > HT2 > MT2 > LT2 etc.)
+        const tierOrder = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5"];
         for (const tier of tierOrder) {
           if (tiers.includes(tier)) return tier;
         }
@@ -93,13 +227,48 @@ export function TierList({ players, isLoading }: TierListProps) {
       return (tierLevel.tiers as readonly string[]).includes(playerTier);
     });
 
-    // Sort players within the tier level according to tier order (HT1 > MIDT1 > LT1, etc.)
-    const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
+    // Sort players within the tier level according to tier order (HT1 > MT1 > LT1, etc.)
+    const tierOrder = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5", "NR"];
     return tieredPlayers.sort((a, b) => {
       const aTier = getTierForGameMode(a, selectedGameMode);
       const bTier = getTierForGameMode(b, selectedGameMode);
       return tierOrder.indexOf(aTier) - tierOrder.indexOf(bTier);
     });
+  };
+
+  // Drag handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const player = players.find(p => p.id === active.id);
+    setActivePlayer(player || null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActivePlayer(null);
+
+    if (!over || !isAdminMode) return;
+
+    const playerId = active.id as string;
+    const overId = over.id as string;
+
+    // Extract tier from the droppable ID (format: "tier-{tierName}")
+    if (overId.startsWith("tier-")) {
+      const targetTier = overId.replace("tier-", "");
+      
+      // Find which tier level this belongs to
+      const tierLevel = tierLevels.find(level => 
+        (level.tiers as readonly string[]).includes(targetTier)
+      );
+      
+      if (tierLevel && selectedGameMode !== "overall") {
+        updatePlayerTierMutation.mutate({
+          playerId,
+          gameMode: selectedGameMode,
+          tier: targetTier,
+        });
+      }
+    }
   };
 
   if (isLoading) {
@@ -116,7 +285,13 @@ export function TierList({ players, isLoading }: TierListProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="space-y-6">
       {/* Header with Search and Admin */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative flex-1 max-w-md">
@@ -181,7 +356,7 @@ export function TierList({ players, isLoading }: TierListProps) {
                   .sort((a, b) => {
                     const aHighest = getTierForGameMode(a, 'overall');
                     const bHighest = getTierForGameMode(b, 'overall');
-                    const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
+                    const tierOrder = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5", "NR"];
                     return tierOrder.indexOf(aHighest) - tierOrder.indexOf(bHighest);
                   })
                   .map((player, index) => (
@@ -280,50 +455,53 @@ export function TierList({ players, isLoading }: TierListProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               {tierLevels.map((tierLevel) => {
                 const tieredPlayers = getPlayersForTier(tierLevel.key);
-                return (
-                  <Card 
-                    key={tierLevel.key} 
-                    className="min-h-[400px] bg-card/30 backdrop-blur-sm border-border/50"
-                    data-testid={`tier-section-${tierLevel.key}`}
-                  >
-                    <CardHeader className="pb-3">
-                      <div className={`text-center py-3 px-4 rounded-lg bg-gradient-to-r ${tierLevel.color}`}>
-                        <h3 className={`font-bold text-lg ${tierLevel.textColor} tier-title`}>
-                          {tierLevel.key}
-                        </h3>
-                        <p className={`text-sm ${tierLevel.textColor} opacity-90`}>
-                          {tierLevel.name}
-                        </p>
-                        <p className={`text-xs ${tierLevel.textColor} opacity-75 mt-1`}>
-                          Players: {tieredPlayers.length}
-                        </p>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {tieredPlayers.length > 0 ? (
-                        tieredPlayers.map((player, index) => (
-                          <PlayerCard
-                            key={player.id}
-                            player={player}
-                            ranking={index + 1}
-                            isAdmin={isAdminMode}
-                            simplified={true}
-                            gameMode={gameMode.key}
-                            onEdit={(player) => {
-                              setEditingPlayer(player);
-                              setShowAdminPanel(true);
-                            }}
-                            onDelete={(id) => deletePlayerMutation.mutate(id)}
-                          />
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p className="text-sm">No players in this tier</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
+                // Create droppable areas for each specific tier within this tier level
+                const tierOptions = tierLevel.tiers as readonly string[];
+                
+                return tierOptions.map((tierOption) => {
+                  const playersInTier = tieredPlayers.filter(player => 
+                    getTierForGameMode(player, selectedGameMode) === tierOption
+                  );
+                  
+                  return (
+                    <SortableContext 
+                      key={tierOption} 
+                      items={playersInTier.map(p => p.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <DroppableTier 
+                        tierKey={tierOption}
+                        tierLevel={{
+                          key: tierOption,
+                          name: tierOption,
+                          color: tierLevel.color,
+                          textColor: tierLevel.textColor
+                        }}
+                      >
+                        {playersInTier.length > 0 ? (
+                          playersInTier.map((player, index) => (
+                            <DraggablePlayerCard
+                              key={player.id}
+                              player={player}
+                              ranking={index + 1}
+                              isAdmin={isAdminMode}
+                              gameMode={gameMode.key}
+                              onEdit={(player) => {
+                                setEditingPlayer(player);
+                                setShowAdminPanel(true);
+                              }}
+                              onDelete={(id) => deletePlayerMutation.mutate(id)}
+                            />
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p className="text-sm">Drop players here</p>
+                          </div>
+                        )}
+                      </DroppableTier>
+                    </SortableContext>
+                  );
+                });
               })}
             </div>
           </TabsContent>
@@ -342,6 +520,19 @@ export function TierList({ players, isLoading }: TierListProps) {
           isAuthenticated={isAuthenticated}
         />
       )}
-    </div>
+      </div>
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activePlayer ? (
+          <PlayerCard
+            player={activePlayer}
+            isAdmin={isAdminMode}
+            simplified={true}
+            gameMode={selectedGameMode}
+          />
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }

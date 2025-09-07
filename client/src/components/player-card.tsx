@@ -47,7 +47,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
     
     if (tiers.length === 0) return "NR";
     
-    const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5"];
+    const tierOrder = ["HT1", "MT1", "LT1", "HT2", "MT2", "LT2", "HT3", "MT3", "LT3", "HT4", "MT4", "LT4", "HT5", "MT5", "LT5"];
     for (const tier of tierOrder) {
       if (tiers.includes(tier)) return tier;
     }

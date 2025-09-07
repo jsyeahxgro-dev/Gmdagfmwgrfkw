@@ -45,11 +45,11 @@ export const gameModes = [
 export type GameMode = typeof gameModes[number]['key'];
 
 export const tierLevels = [
-  { key: 'T1', name: 'TIER 1', tiers: ['HT1', 'MIDT1', 'LT1'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T2', name: 'TIER 2', tiers: ['HT2', 'MIDT2', 'LT2'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T3', name: 'TIER 3', tiers: ['HT3', 'MIDT3', 'LT3'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T4', name: 'TIER 4', tiers: ['HT4', 'MIDT4', 'LT4'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
-  { key: 'T5', name: 'TIER 5', tiers: ['HT5', 'MIDT5', 'LT5'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' }
+  { key: 'T1', name: 'TIER 1', tiers: ['HT1', 'MT1', 'LT1'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T2', name: 'TIER 2', tiers: ['HT2', 'MT2', 'LT2'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T3', name: 'TIER 3', tiers: ['HT3', 'MT3', 'LT3'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T4', name: 'TIER 4', tiers: ['HT4', 'MT4', 'LT4'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' },
+  { key: 'T5', name: 'TIER 5', tiers: ['HT5', 'MT5', 'LT5'], color: 'from-slate-800 to-slate-900', textColor: 'text-white' }
 ] as const;
 
 export const getTierColor = (tier: string) => {
