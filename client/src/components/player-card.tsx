@@ -3,9 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Trash2, X } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import type { Player } from "@shared/schema";
 import { getTierColor, gameModes, tierOptions, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
 
@@ -16,93 +14,12 @@ interface PlayerCardProps {
   onEdit?: (player: Player) => void;
   onDelete?: (id: string) => void;
   simplified?: boolean;  // For tier lists, show simplified version
+  gameMode?: string; // To determine if we should show shiny ranks or not
 }
 
-interface QuickEditProps {
-  player: Player;
-  onSave: (data: { name: string; tier: string; gameMode: string }) => void;
-  onCancel: () => void;
-}
 
-function QuickEdit({ player, onSave, onCancel }: QuickEditProps) {
-  const [name, setName] = useState(player.name);
-  const [selectedGameMode, setSelectedGameMode] = useState<string>('skywars');
-  const [selectedTier, setSelectedTier] = useState<string>('NR');
-  
-  const handleSave = () => {
-    onSave({ name, tier: selectedTier, gameMode: selectedGameMode });
-  };
-  
-  return (
-    <div className="p-3 border rounded-lg bg-background/80 backdrop-blur-sm space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="font-medium text-sm">Quick Edit</h4>
-        <Button variant="ghost" size="sm" onClick={onCancel}>
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
-      
-      <div className="space-y-2">
-        <div>
-          <label className="text-xs font-medium text-muted-foreground">Player Name</label>
-          <Input 
-            value={name} 
-            onChange={(e) => setName(e.target.value)}
-            className="h-8 text-sm"
-            data-testid="quick-edit-name"
-          />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Gamemode</label>
-            <Select value={selectedGameMode} onValueChange={setSelectedGameMode}>
-              <SelectTrigger className="h-8 text-sm" data-testid="quick-edit-gamemode">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {gameModes.filter(mode => mode.key !== 'overall').map((gameMode) => (
-                  <SelectItem key={gameMode.key} value={gameMode.key}>
-                    {gameMode.abbr}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="text-xs font-medium text-muted-foreground">Tier</label>
-            <Select value={selectedTier} onValueChange={setSelectedTier}>
-              <SelectTrigger className="h-8 text-sm" data-testid="quick-edit-tier">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {tierOptions.map((tier) => (
-                  <SelectItem key={tier} value={tier}>
-                    {tier === "NR" ? "Not Ranked" : tier}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button size="sm" onClick={handleSave} className="flex-1 h-8" data-testid="quick-edit-save">
-            Save
-          </Button>
-          <Button size="sm" variant="outline" onClick={onCancel} className="flex-1 h-8" data-testid="quick-edit-cancel">
-            Cancel
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete, simplified = false }: PlayerCardProps) {
+export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete, simplified = false, gameMode }: PlayerCardProps) {
   const [imageError, setImageError] = useState(false);
-  const [isQuickEditing, setIsQuickEditing] = useState(false);
   
   const getMinecraftSkinUrl = (playerName: string) => {
     // Use Minecraft avatar API
@@ -110,21 +27,9 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
   };
 
   const handleEdit = () => {
-    if (isAdmin) {
-      setIsQuickEditing(true);
-    } else if (onEdit) {
+    if (onEdit) {
       onEdit(player);
     }
-  };
-  
-  const handleQuickEditSave = (data: { name: string; tier: string; gameMode: string }) => {
-    // Here you would typically make an API call to update the player
-    // For now, we'll simulate by calling onEdit with updated data
-    if (onEdit) {
-      const updatedPlayer = { ...player, name: data.name, [`${data.gameMode}Tier`]: data.tier };
-      onEdit(updatedPlayer);
-    }
-    setIsQuickEditing(false);
   };
 
   const handleDelete = () => {
@@ -152,15 +57,6 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
   const currentTier = getCurrentTier();
   const tierColorClass = getTierColor(currentTier);
 
-  if (isQuickEditing) {
-    return (
-      <QuickEdit 
-        player={player}
-        onSave={handleQuickEditSave}
-        onCancel={() => setIsQuickEditing(false)}
-      />
-    );
-  }
 
   if (simplified) {
     // Simplified version for tier lists
@@ -168,7 +64,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
       <Card 
         className={`group relative hover:shadow-md transition-all duration-200 bg-card/80 backdrop-blur-sm border-border/50 hover:bg-card/90 border-l-4 ${tierColorClass} ${isAdmin ? 'cursor-pointer' : ''}`} 
         data-testid={`player-card-${player.id}`}
-        onClick={isAdmin ? handleEdit : undefined}
+        onClick={isAdmin && onEdit ? handleEdit : undefined}
       >
         <CardContent className="p-3">
           <div className="text-center">
@@ -236,10 +132,11 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
             <div className="flex items-center gap-2">
               {ranking && (
                 <span className={`text-sm font-bold ${
-                  ranking === 1 ? 'rank-1' : 
-                  ranking === 2 ? 'rank-2' : 
-                  ranking === 3 ? 'rank-3' : 
-                  'minecraft-font text-primary'
+                  gameMode === 'overall' && ranking <= 3 ? 
+                    (ranking === 1 ? 'rank-1' : 
+                     ranking === 2 ? 'rank-2' : 
+                     'rank-3') :
+                  'minecraft-font text-muted-foreground'
                 }`}>
                   #{ranking}
                 </span>

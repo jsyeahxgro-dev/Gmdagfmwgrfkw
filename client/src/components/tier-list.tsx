@@ -310,6 +310,7 @@ export function TierList({ players, isLoading }: TierListProps) {
                             ranking={index + 1}
                             isAdmin={isAdminMode}
                             simplified={true}
+                            gameMode={gameMode.key}
                             onEdit={(player) => {
                               setEditingPlayer(player);
                               setShowAdminPanel(true);
