@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { X, Edit, Trash2, Plus, ChevronUp, ChevronDown, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
-import { insertPlayerSchema, tierOptions, gameModes, tierLevels, type Player, type InsertPlayer, type GameMode, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
+import { insertPlayerSchema, tierOptions, gameModes, tierLevels, type Player, type InsertPlayer, type GameMode, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
 import { PlayerCard } from "./player-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { z } from "zod";
@@ -185,7 +185,7 @@ function AddPlayerDialog({ open, onClose, onSuccess, gameMode }: AddPlayerDialog
                     <SelectContent>
                       {tierOptions.filter(tier => tier !== "NR").map((tier) => (
                         <SelectItem key={tier} value={tier}>
-                          {tier}
+                          {getTierDisplayName(tier)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -363,7 +363,7 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
                             <SelectContent>
                               {tierOptions.map((tier) => (
                                 <SelectItem key={tier} value={tier}>
-                                  {tier === "NR" ? "Not Ranked" : tier}
+                                  {getTierDisplayName(tier)}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -520,7 +520,7 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
                         <SelectContent>
                           {tierOptions.map((tier) => (
                             <SelectItem key={tier} value={tier}>
-                              {tier === "NR" ? "Not Ranked" : tier}
+                              {getTierDisplayName(tier)}
                             </SelectItem>
                           ))}
                         </SelectContent>
