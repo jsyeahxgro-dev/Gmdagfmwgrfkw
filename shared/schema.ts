@@ -86,11 +86,12 @@ export const calculatePlayerPoints = (player: Player): number => {
 };
 
 export const getTitleFromPoints = (points: number): string => {
-  if (points >= 400) return 'Combat Grandmaster';  // 80% of max (500)
-  if (points >= 300) return 'Combat Master';       // 60% of max
-  if (points >= 200) return 'Combat Ace';          // 40% of max
-  if (points >= 100) return 'Combat Specialist';   // 20% of max
-  if (points >= 50) return 'Combat Cadet';         // 10% of max
+  if (points >= 450) return 'Grandmaster';
+  if (points >= 350) return 'Master';
+  if (points >= 275) return 'Elite';
+  if (points >= 200) return 'Ace';
+  if (points >= 125) return 'Specialist';
+  if (points >= 50) return 'Cadet';
   return 'Rookie';
 };
 
