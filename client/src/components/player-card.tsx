@@ -106,19 +106,50 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
           </div>
           
           {isAdmin && (
-            <div className="flex justify-center mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEdit();
-                }}
-                className="h-6 px-2"
-                data-testid={`edit-player-${player.id}`}
-              >
-                <Edit className="w-3 h-3" />
-              </Button>
+            <div className={`flex justify-center mt-2 transition-opacity duration-200 ${isReorderMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+              {isReorderMode ? (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveUp && onMoveUp(player.id);
+                    }}
+                    disabled={!canMoveUp}
+                    className="h-6 px-2 mr-1"
+                    data-testid={`move-up-player-${player.id}`}
+                  >
+                    <ArrowUp className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMoveDown && onMoveDown(player.id);
+                    }}
+                    disabled={!canMoveDown}
+                    className="h-6 px-2"
+                    data-testid={`move-down-player-${player.id}`}
+                  >
+                    <ArrowDown className="w-3 h-3" />
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit();
+                  }}
+                  className="h-6 px-2"
+                  data-testid={`edit-player-${player.id}`}
+                >
+                  <Edit className="w-3 h-3" />
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
@@ -187,7 +218,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
         </div>
 
         {isAdmin && (
-          <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className={`flex space-x-2 transition-opacity duration-200 ${isReorderMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
             {isReorderMode ? (
               <>
                 <Button
