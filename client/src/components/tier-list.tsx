@@ -12,7 +12,7 @@ import { AdminPanel } from "./admin-panel";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Player, GameMode } from "@shared/schema";
-import { gameModes, tierLevels, getTierColor, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
+import { gameModes, tierLevels, getTierColor, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
 import {
   DndContext,
   DragEndEvent,
@@ -554,8 +554,8 @@ export function TierList({ players, isLoading }: TierListProps) {
                             const tierColor = 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-md border border-blue-400';
                             
                             return (
-                              <div key={mode.key} className={`px-2 py-1 rounded-md ${tierColor} text-xs font-bold text-white backdrop-blur-sm`} title={`${mode.name}: ${mode.tier}`}>
-                                {mode.abbr}: {mode.tier}
+                              <div key={mode.key} className={`px-2 py-1 rounded-md ${tierColor} text-xs font-bold text-white backdrop-blur-sm`} title={`${mode.name}: ${getTierDisplayName(mode.tier)}`}>
+                                {mode.abbr}: {getTierDisplayName(mode.tier)}
                               </div>
                             );
                           })}
