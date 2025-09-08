@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Edit, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import type { Player } from "@shared/schema";
-import { getTierColor, gameModes, tierOptions, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
+import { getTierColor, gameModes, tierOptions, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
 
 interface PlayerCardProps {
   player: Player;
@@ -101,7 +101,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
               {player.name}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {currentTier}
+              {getTierDisplayName(currentTier)}
             </p>
           </div>
           
@@ -178,7 +178,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
                   { key: 'uhc', tier: player.uhcTier, abbr: 'UHC' }
                 ].filter(mode => mode.tier && mode.tier !== "NR").map(mode => (
                   <Badge key={mode.key} variant="outline" className="text-xs px-1 py-0">
-                    {mode.abbr}: {mode.tier}
+                    {mode.abbr}: {getTierDisplayName(mode.tier)}
                   </Badge>
                 ))}
               </div>
