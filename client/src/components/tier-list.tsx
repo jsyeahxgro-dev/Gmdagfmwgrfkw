@@ -207,6 +207,29 @@ export function TierList({ players, isLoading }: TierListProps) {
     },
   });
 
+  // Handle tier change confirmation
+  const handleTierChangeConfirmation = async () => {
+    if (!pendingMove) return;
+    
+    const newTier = getNewTierForCrossBoundary(
+      getTierForGameMode(players.find(p => p.id === pendingMove.playerId)!, selectedGameMode),
+      pendingMove.direction
+    );
+    
+    try {
+      await updatePlayerTierMutation.mutateAsync({
+        playerId: pendingMove.playerId,
+        gameMode: selectedGameMode,
+        tier: newTier,
+      });
+      
+      setShowTierChangeDialog(false);
+      setPendingMove(null);
+    } catch (error) {
+      console.error('Failed to update tier:', error);
+    }
+  };
+
   const updatePlayerTierMutation = useMutation({
     mutationFn: async ({ playerId, gameMode, tier }: { playerId: string; gameMode: string; tier: string }) => {
       const response = await apiRequest("PATCH", `/api/players/${playerId}/tier`, { gameMode, tier });
@@ -814,6 +837,36 @@ export function TierList({ players, isLoading }: TierListProps) {
           />
         ) : null}
       </DragOverlay>
+
+      {/* Tier Change Confirmation Dialog */}
+      <AlertDialog open={showTierChangeDialog} onOpenChange={setShowTierChangeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Player Tier</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingMove && (
+                <>
+                  Moving <strong>{pendingMove.playerName}</strong> {pendingMove.direction} will change their tier from{' '}
+                  <strong>{pendingMove.currentTier}</strong> to <strong>{pendingMove.newTier}</strong>.
+                  <br /><br />
+                  Do you want to proceed with this tier change?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowTierChangeDialog(false);
+              setPendingMove(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleTierChangeConfirmation}>
+              Change Tier
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DndContext>
   );
 }
