@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Player, GameMode } from "@shared/schema";
 import { gameModes, tierLevels, getTierColor, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   DndContext,
   DragEndEvent,
@@ -165,6 +166,15 @@ export function TierList({ players, isLoading }: TierListProps) {
   };
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [showTierChangeDialog, setShowTierChangeDialog] = useState(false);
+  const [pendingMove, setPendingMove] = useState<{
+    playerId: string;
+    playerName: string;
+    direction: 'up' | 'down';
+    currentTier: string;
+    newTier: string;
+    tierKey: string;
+  } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -268,17 +278,99 @@ export function TierList({ players, isLoading }: TierListProps) {
   // Add support for custom player ordering within tiers
   const [playerOrders, setPlayerOrders] = useState<Record<string, string[]>>({});
 
-  // Move player up/down within their tier
+  // Helper function to get tier type (High, Mid, Low)
+  const getTierType = (tier: string): 'High' | 'Mid' | 'Low' | 'NR' => {
+    if (tier === 'NR') return 'NR';
+    if (tier.startsWith('HT')) return 'High';
+    if (tier.startsWith('MIDT')) return 'Mid';
+    if (tier.startsWith('LT')) return 'Low';
+    return 'NR';
+  };
+
+  // Helper function to get the next/previous tier when crossing boundaries
+  const getNewTierForCrossBoundary = (currentTier: string, direction: 'up' | 'down'): string => {
+    const tierNum = currentTier.match(/\d+/)?.[0] || '1';
+    
+    if (direction === 'up') {
+      if (currentTier.startsWith('LT')) return `MIDT${tierNum}`;
+      if (currentTier.startsWith('MIDT')) return `HT${tierNum}`;
+    } else {
+      if (currentTier.startsWith('HT')) return `MIDT${tierNum}`;
+      if (currentTier.startsWith('MIDT')) return `LT${tierNum}`;
+    }
+    return currentTier;
+  };
+
+  // Move player up/down with tier boundary checking
   const movePlayerUp = (playerId: string, tierKey: string) => {
     const tierPlayers = getOrderedPlayersForTier(tierKey);
     const currentIndex = tierPlayers.findIndex(p => p.id === playerId);
+    
+    if (currentIndex === 0) {
+      // At the top of the tier - check if we can move to a higher tier type
+      const player = tierPlayers[currentIndex];
+      const currentTier = getTierForGameMode(player, selectedGameMode);
+      const currentTierType = getTierType(currentTier);
+      
+      if (currentTierType === 'Low') {
+        // Can move from Low to Mid
+        const newTier = getNewTierForCrossBoundary(currentTier, 'up');
+        setPendingMove({
+          playerId,
+          playerName: player.name,
+          direction: 'up',
+          currentTier: getTierDisplayName(currentTier),
+          newTier: getTierDisplayName(newTier),
+          tierKey
+        });
+        setShowTierChangeDialog(true);
+        return;
+      } else if (currentTierType === 'Mid') {
+        // Can move from Mid to High
+        const newTier = getNewTierForCrossBoundary(currentTier, 'up');
+        setPendingMove({
+          playerId,
+          playerName: player.name,
+          direction: 'up',
+          currentTier: getTierDisplayName(currentTier),
+          newTier: getTierDisplayName(newTier),
+          tierKey
+        });
+        setShowTierChangeDialog(true);
+        return;
+      }
+      // High tier can't move up
+      return;
+    }
+    
     if (currentIndex > 0) {
+      // Check if the player above is in a different tier type
+      const player = tierPlayers[currentIndex];
+      const playerAbove = tierPlayers[currentIndex - 1];
+      const currentTier = getTierForGameMode(player, selectedGameMode);
+      const tierAbove = getTierForGameMode(playerAbove, selectedGameMode);
+      
+      if (getTierType(currentTier) !== getTierType(tierAbove)) {
+        // Cross tier boundary
+        setPendingMove({
+          playerId,
+          playerName: player.name,
+          direction: 'up',
+          currentTier: getTierDisplayName(currentTier),
+          newTier: getTierDisplayName(tierAbove),
+          tierKey
+        });
+        setShowTierChangeDialog(true);
+        return;
+      }
+      
+      // Normal reorder within same tier type
       const newOrder = [...tierPlayers];
       [newOrder[currentIndex - 1], newOrder[currentIndex]] = [newOrder[currentIndex], newOrder[currentIndex - 1]];
       
       setPlayerOrders(prev => ({
         ...prev,
-        [tierKey]: newOrder.map(p => p.id)
+        [`${selectedGameMode}-${tierKey}`]: newOrder.map(p => p.id)
       }));
     }
   };
@@ -286,13 +378,72 @@ export function TierList({ players, isLoading }: TierListProps) {
   const movePlayerDown = (playerId: string, tierKey: string) => {
     const tierPlayers = getOrderedPlayersForTier(tierKey);
     const currentIndex = tierPlayers.findIndex(p => p.id === playerId);
+    
+    if (currentIndex === tierPlayers.length - 1) {
+      // At the bottom of the tier - check if we can move to a lower tier type
+      const player = tierPlayers[currentIndex];
+      const currentTier = getTierForGameMode(player, selectedGameMode);
+      const currentTierType = getTierType(currentTier);
+      
+      if (currentTierType === 'High') {
+        // Can move from High to Mid
+        const newTier = getNewTierForCrossBoundary(currentTier, 'down');
+        setPendingMove({
+          playerId,
+          playerName: player.name,
+          direction: 'down',
+          currentTier: getTierDisplayName(currentTier),
+          newTier: getTierDisplayName(newTier),
+          tierKey
+        });
+        setShowTierChangeDialog(true);
+        return;
+      } else if (currentTierType === 'Mid') {
+        // Can move from Mid to Low
+        const newTier = getNewTierForCrossBoundary(currentTier, 'down');
+        setPendingMove({
+          playerId,
+          playerName: player.name,
+          direction: 'down',
+          currentTier: getTierDisplayName(currentTier),
+          newTier: getTierDisplayName(newTier),
+          tierKey
+        });
+        setShowTierChangeDialog(true);
+        return;
+      }
+      // Low tier can't move down
+      return;
+    }
+    
     if (currentIndex < tierPlayers.length - 1) {
+      // Check if the player below is in a different tier type
+      const player = tierPlayers[currentIndex];
+      const playerBelow = tierPlayers[currentIndex + 1];
+      const currentTier = getTierForGameMode(player, selectedGameMode);
+      const tierBelow = getTierForGameMode(playerBelow, selectedGameMode);
+      
+      if (getTierType(currentTier) !== getTierType(tierBelow)) {
+        // Cross tier boundary
+        setPendingMove({
+          playerId,
+          playerName: player.name,
+          direction: 'down',
+          currentTier: getTierDisplayName(currentTier),
+          newTier: getTierDisplayName(tierBelow),
+          tierKey
+        });
+        setShowTierChangeDialog(true);
+        return;
+      }
+      
+      // Normal reorder within same tier type
       const newOrder = [...tierPlayers];
       [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
       
       setPlayerOrders(prev => ({
         ...prev,
-        [tierKey]: newOrder.map(p => p.id)
+        [`${selectedGameMode}-${tierKey}`]: newOrder.map(p => p.id)
       }));
     }
   };
