@@ -5,14 +5,21 @@ interface TierBadgeProps {
 }
 
 const tierConfig = {
-  'HT1': { label: 'High S', className: 'tier-s' },
-  'HT2': { label: 'High A', className: 'tier-a' },
-  'HT3': { label: 'High B', className: 'tier-b' },
-  'LT1': { label: 'Low S', className: 'tier-s' },
-  'LT2': { label: 'Low A', className: 'tier-a' },
-  'LT3': { label: 'Low C', className: 'tier-b' },
-  'LT4': { label: 'C Tier', className: 'tier-c' },
-  'LT5': { label: 'D Tier', className: 'tier-d' },
+  'HT1': { label: 'HighS', className: 'tier-s' },
+  'MIDT1': { label: 'MidS', className: 'tier-s' },
+  'LT1': { label: 'LowS', className: 'tier-s' },
+  'HT2': { label: 'HighA', className: 'tier-a' },
+  'MIDT2': { label: 'MidA', className: 'tier-a' },
+  'LT2': { label: 'LowA', className: 'tier-a' },
+  'HT3': { label: 'HighB', className: 'tier-b' },
+  'MIDT3': { label: 'MidB', className: 'tier-b' },
+  'LT3': { label: 'LowB', className: 'tier-b' },
+  'HT4': { label: 'HighC', className: 'tier-c' },
+  'MIDT4': { label: 'MidC', className: 'tier-c' },
+  'LT4': { label: 'LowC', className: 'tier-c' },
+  'HT5': { label: 'HighD', className: 'tier-d' },
+  'MIDT5': { label: 'MidD', className: 'tier-d' },
+  'LT5': { label: 'LowD', className: 'tier-d' },
   'NR': { label: 'NR', className: 'tier-nr' }
 };
 
