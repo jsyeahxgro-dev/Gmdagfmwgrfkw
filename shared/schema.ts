@@ -93,3 +93,25 @@ export const getTitleFromPoints = (points: number): string => {
   if (points >= 50) return 'Combat Cadet';
   return 'Rookie';
 };
+
+export const getTierDisplayName = (tier: string): string => {
+  const tierDisplayNames: Record<string, string> = {
+    'HT1': 'HighS',
+    'MIDT1': 'MidS', 
+    'LT1': 'LowS',
+    'HT2': 'HighA',
+    'MIDT2': 'MidA',
+    'LT2': 'LowA', 
+    'HT3': 'HighB',
+    'MIDT3': 'MidB',
+    'LT3': 'LowB',
+    'HT4': 'HighC', 
+    'MIDT4': 'MidC',
+    'LT4': 'LowC',
+    'HT5': 'HighD',
+    'MIDT5': 'MidD',
+    'LT5': 'LowD',
+    'NR': 'Not Ranked'
+  };
+  return tierDisplayNames[tier] || tier;
+};
