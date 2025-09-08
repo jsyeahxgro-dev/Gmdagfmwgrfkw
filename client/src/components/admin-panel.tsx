@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { X, Edit, Trash2, Plus, ChevronUp, ChevronDown } from "lucide-react";
+import { X, Edit, Trash2, Plus, ChevronUp, ChevronDown, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
 import { insertPlayerSchema, tierOptions, gameModes, tierLevels, type Player, type InsertPlayer, type GameMode, calculatePlayerPoints, getTitleFromPoints } from "@shared/schema";
 import { PlayerCard } from "./player-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -592,6 +592,8 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
   const [editingGameMode, setEditingGameMode] = useState<GameMode | undefined>();
   const [deletingPlayer, setDeletingPlayer] = useState<Player | null>(null);
   const [deletingGameMode, setDeletingGameMode] = useState<string | undefined>();
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [playerOrders, setPlayerOrders] = useState<Record<string, string[]>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -820,6 +822,60 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     setDeletingGameMode(undefined);
   };
 
+  // Move player up/down within their tier
+  const movePlayerUp = (playerId: string, tierKey: string) => {
+    const tierPlayers = getOrderedPlayersForTier(tierKey);
+    const currentIndex = tierPlayers.findIndex(p => p.id === playerId);
+    if (currentIndex > 0) {
+      const newOrder = [...tierPlayers];
+      [newOrder[currentIndex - 1], newOrder[currentIndex]] = [newOrder[currentIndex], newOrder[currentIndex - 1]];
+      
+      setPlayerOrders(prev => ({
+        ...prev,
+        [tierKey]: newOrder.map(p => p.id)
+      }));
+    }
+  };
+
+  const movePlayerDown = (playerId: string, tierKey: string) => {
+    const tierPlayers = getOrderedPlayersForTier(tierKey);
+    const currentIndex = tierPlayers.findIndex(p => p.id === playerId);
+    if (currentIndex < tierPlayers.length - 1) {
+      const newOrder = [...tierPlayers];
+      [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
+      
+      setPlayerOrders(prev => ({
+        ...prev,
+        [tierKey]: newOrder.map(p => p.id)
+      }));
+    }
+  };
+
+  const getOrderedPlayersForTier = (tierKey: string) => {
+    const basePlayers = getPlayersForTier(tierKey);
+    const customOrder = playerOrders[tierKey];
+    
+    if (!customOrder) {
+      return basePlayers;
+    }
+    
+    // Sort players based on custom order, fallback to original order for new players
+    const orderedPlayers = [];
+    const remaining = [...basePlayers];
+    
+    for (const playerId of customOrder) {
+      const playerIndex = remaining.findIndex(p => p.id === playerId);
+      if (playerIndex >= 0) {
+        orderedPlayers.push(remaining.splice(playerIndex, 1)[0]);
+      }
+    }
+    
+    // Add any remaining players that weren't in the custom order
+    orderedPlayers.push(...remaining);
+    
+    return orderedPlayers;
+  };
+
 
 
 
@@ -918,6 +974,17 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                   <Plus className="w-4 h-4 mr-2" />
                   Add Player
                 </Button>
+                {selectedGameMode !== "overall" && (
+                  <Button
+                    onClick={() => setIsReorderMode(!isReorderMode)}
+                    variant={isReorderMode ? "destructive" : "outline"}
+                    size="sm"
+                    data-testid="admin-reorder-toggle-button"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    {isReorderMode ? "Exit Reorder" : "Reorder"}
+                  </Button>
+                )}
                 <Button variant="ghost" size="sm" onClick={onClose} data-testid="close-admin-button">
                   <X className="w-4 h-4" />
                 </Button>
@@ -1017,38 +1084,6 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                             
                             {/* Admin Actions */}
                             <div className="flex gap-2">
-                              {/* Reorder Buttons - Only show in gamemode views, not in overall */}
-                              {selectedGameMode !== "overall" && (
-                                <div className="flex flex-col gap-1">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handlePlayerReorder(player, 'up', sortedPlayers, index);
-                                    }}
-                                    disabled={index === 0}
-                                    className="w-8 h-6 p-0"
-                                    data-testid={`admin-reorder-up-${player.id}`}
-                                  >
-                                    <ChevronUp className="w-3 h-3" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handlePlayerReorder(player, 'down', sortedPlayers, index);
-                                    }}
-                                    disabled={index === sortedPlayers.length - 1}
-                                    className="w-8 h-6 p-0"
-                                    data-testid={`admin-reorder-down-${player.id}`}
-                                  >
-                                    <ChevronDown className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              )}
-                              
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1086,7 +1121,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                   {/* Vertical Tier List */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                     {tierLevels.map((tierLevel) => {
-                      const tieredPlayers = getPlayersForTier(tierLevel.key);
+                      const tieredPlayers = getOrderedPlayersForTier(tierLevel.key);
                       return (
                         <Card 
                           key={tierLevel.key} 
@@ -1115,25 +1150,37 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                                     ranking={index + 1}
                                     isAdmin={true}
                                     simplified={true}
-                                    onEdit={(player) => handlePlayerEdit(player, selectedGameMode)}
+                                    isReorderMode={isReorderMode}
+                                    onMoveUp={(playerId: string) => movePlayerUp(playerId, tierLevel.key)}
+                                    onMoveDown={(playerId: string) => movePlayerDown(playerId, tierLevel.key)}
+                                    canMoveUp={index > 0}
+                                    canMoveDown={index < tieredPlayers.length - 1}
+                                    onEdit={(player) => {
+                                      if (!isReorderMode) {
+                                        handlePlayerEdit(player, selectedGameMode);
+                                      }
+                                    }}
                                     onDelete={(id) => {
-                                      const player = tieredPlayers.find(p => p.id === id);
-                                      if (player) handlePlayerDelete(player, selectedGameMode);
+                                      if (!isReorderMode) {
+                                        const player = tieredPlayers.find(p => p.id === id);
+                                        if (player) handlePlayerDelete(player, selectedGameMode);
+                                      }
                                     }}
                                   />
-                                  {/* Delete button overlay */}
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-6 h-6 p-0"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handlePlayerDelete(player, selectedGameMode);
-                                    }}
-                                    data-testid={`admin-delete-gamemode-player-${player.id}`}
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
+                                  {!isReorderMode && (
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-6 h-6 p-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePlayerDelete(player, selectedGameMode);
+                                      }}
+                                      data-testid={`admin-delete-gamemode-player-${player.id}`}
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  )}
                                 </div>
                               ))
                             ) : (
