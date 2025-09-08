@@ -65,11 +65,11 @@ export const getTierColor = (tier: string, isOverall: boolean = false) => {
 
 // Points system mapping
 export const tierPoints = {
-  'HT1': 100, 'MIDT1': 80, 'LT1': 60,
-  'HT2': 70,  'MIDT2': 60, 'LT2': 50,
-  'HT3': 40,  'MIDT3': 35, 'LT3': 30,
-  'HT4': 20,  'MIDT4': 15, 'LT4': 10,
-  'HT5': 8,   'MIDT5': 6,  'LT5': 4,
+  'HT1': 100, 'MIDT1': 90, 'LT1': 80,  // S Tier
+  'HT2': 70,  'MIDT2': 65, 'LT2': 60,  // A Tier
+  'HT3': 50,  'MIDT3': 45, 'LT3': 40,  // B Tier
+  'HT4': 30,  'MIDT4': 25, 'LT4': 20,  // C Tier
+  'HT5': 10,  'MIDT5': 8,  'LT5': 6,   // D Tier
   'NR': 0
 } as const;
 
@@ -86,11 +86,11 @@ export const calculatePlayerPoints = (player: Player): number => {
 };
 
 export const getTitleFromPoints = (points: number): string => {
-  if (points >= 450) return 'Combat Grandmaster';
-  if (points >= 350) return 'Combat Master';
-  if (points >= 250) return 'Combat Ace';
-  if (points >= 150) return 'Combat Specialist';
-  if (points >= 50) return 'Combat Cadet';
+  if (points >= 400) return 'Combat Grandmaster';  // 80% of max (500)
+  if (points >= 300) return 'Combat Master';       // 60% of max
+  if (points >= 200) return 'Combat Ace';          // 40% of max
+  if (points >= 100) return 'Combat Specialist';   // 20% of max
+  if (points >= 50) return 'Combat Cadet';         // 10% of max
   return 'Rookie';
 };
 
