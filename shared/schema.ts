@@ -23,13 +23,12 @@ export type Player = typeof players.$inferSelect;
 export const tierOptions = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"] as const;
 export const titleOptions = [
   "Rookie",
-  "Combat Novice", 
-  "Combat Cadet",
-  "Combat Specialist",
-  "Combat Elite",
-  "Combat Ace",
-  "Combat Master",
-  "Combat Grandmaster"
+  "Cadet",
+  "Specialist", 
+  "Ace",
+  "Elite",
+  "Master",
+  "Grandmaster"
 ] as const;
 
 export const gameModes = [
