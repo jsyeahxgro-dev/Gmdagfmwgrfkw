@@ -9,6 +9,7 @@ import { Search, Plus, Settings, Edit, Trash2, ArrowUp, ArrowDown, RotateCcw } f
 import { PlayerCard } from "./player-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminPanel } from "./admin-panel";
+import { PlayerProfileModal } from "./player-profile-modal";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Player, GameMode } from "@shared/schema";
@@ -175,8 +176,18 @@ export function TierList({ players, isLoading }: TierListProps) {
     newTier: string;
     tierKey: string;
   } | null>(null);
+  const [showPlayerProfile, setShowPlayerProfile] = useState(false);
+  const [selectedPlayerForProfile, setSelectedPlayerForProfile] = useState<Player | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Handle player profile modal
+  const handlePlayerProfileClick = (player: Player) => {
+    if (selectedGameMode === 'overall') {
+      setSelectedPlayerForProfile(player);
+      setShowPlayerProfile(true);
+    }
+  };
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -679,7 +690,12 @@ export function TierList({ players, isLoading }: TierListProps) {
                     return bPoints - aPoints;
                   })
                   .map((player, index) => (
-                    <div key={player.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-muted/50 transition-colors" data-testid={`leaderboard-player-${player.id}`}>
+                    <div 
+                      key={player.id} 
+                      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                      data-testid={`leaderboard-player-${player.id}`}
+                      onClick={() => handlePlayerProfileClick(player)}
+                    >
                       {/* Ranking */}
                       <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center font-bold text-base sm:text-lg minecraft-font ${
                         index === 0 ? 'rank-1' :
@@ -874,6 +890,23 @@ export function TierList({ players, isLoading }: TierListProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Player Profile Modal */}
+      <PlayerProfileModal
+        player={selectedPlayerForProfile}
+        isOpen={showPlayerProfile}
+        onClose={() => {
+          setShowPlayerProfile(false);
+          setSelectedPlayerForProfile(null);
+        }}
+        playerRanking={
+          selectedPlayerForProfile 
+            ? filteredPlayers
+                .sort((a, b) => calculatePlayerPoints(b) - calculatePlayerPoints(a))
+                .findIndex(p => p.id === selectedPlayerForProfile.id) + 1
+            : undefined
+        }
+      />
     </DndContext>
   );
 }
