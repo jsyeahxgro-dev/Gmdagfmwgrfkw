@@ -85,7 +85,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
         data-testid={`player-card-${player.id}`}
         onClick={isAdmin && onEdit ? handleEdit : undefined}
       >
-        <CardContent className="p-3">
+        <CardContent className="p-2 sm:p-3">
           <div className="text-center">
             {ranking && (
               <span className={`text-sm font-bold block mb-1 ${
@@ -97,10 +97,10 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
                 #{ranking}
               </span>
             )}
-            <p className="font-semibold text-sm truncate" data-testid={`player-name-${player.id}`}>
+            <p className="font-semibold text-xs sm:text-sm truncate" data-testid={`player-name-${player.id}`}>
               {player.name}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1 truncate">
               {getTierDisplayName(currentTier)}
             </p>
           </div>
@@ -117,7 +117,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
                       onMoveUp && onMoveUp(player.id);
                     }}
                     disabled={!canMoveUp}
-                    className="h-6 px-2 mr-1"
+                    className="h-7 sm:h-6 px-2 mr-1 min-w-[28px] sm:min-w-[32px]"
                     data-testid={`move-up-player-${player.id}`}
                   >
                     <ArrowUp className="w-3 h-3" />
@@ -130,7 +130,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
                       onMoveDown && onMoveDown(player.id);
                     }}
                     disabled={!canMoveDown}
-                    className="h-6 px-2"
+                    className="h-7 sm:h-6 px-2 min-w-[28px] sm:min-w-[32px]"
                     data-testid={`move-down-player-${player.id}`}
                   >
                     <ArrowDown className="w-3 h-3" />
@@ -144,7 +144,7 @@ export function PlayerCard({ player, ranking, isAdmin = false, onEdit, onDelete,
                     e.stopPropagation();
                     handleEdit();
                   }}
-                  className="h-6 px-2"
+                  className="h-7 sm:h-6 px-2 min-w-[28px] sm:min-w-[32px]"
                   data-testid={`edit-player-${player.id}`}
                 >
                   <Edit className="w-3 h-3" />

@@ -593,18 +593,18 @@ export function TierList({ players, isLoading }: TierListProps) {
     >
       <div className="space-y-6">
       {/* Header with Search and Admin */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-between">
+        <div className="relative w-full sm:flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
             placeholder="Search players..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 h-10 sm:h-9"
             data-testid="search-input"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center sm:justify-end">
           <Button
             variant={isAdminMode ? "default" : "outline"}
             onClick={() => {
@@ -614,28 +614,34 @@ export function TierList({ players, isLoading }: TierListProps) {
                 setIsAdminMode(false);
               }
             }}
+            className="h-10 sm:h-9 px-3 sm:px-4 text-sm"
             data-testid="toggle-admin-mode"
           >
-            <Settings className="w-4 h-4 mr-2" />
-            {isAdminMode ? "Exit Admin" : "Admin Mode"}
+            <Settings className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline ml-2">{isAdminMode ? "Exit Admin" : "Admin Mode"}</span>
+            <span className="sm:hidden">Admin</span>
           </Button>
           {isAdminMode && (
             <div className="flex gap-2">
               <Button
                 onClick={() => setShowAdminPanel(true)}
+                className="h-10 sm:h-9 px-3 sm:px-4 text-sm"
                 data-testid="add-player-button"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Player
+                <Plus className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline ml-2">Add Player</span>
+                <span className="sm:hidden">Add</span>
               </Button>
               {selectedGameMode !== "overall" && (
                 <Button
                   onClick={() => setIsReorderMode(!isReorderMode)}
                   variant={isReorderMode ? "destructive" : "outline"}
+                  className="h-10 sm:h-9 px-3 sm:px-4 text-sm"
                   data-testid="reorder-toggle-button"
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  {isReorderMode ? "Exit Reorder" : "Reorder"}
+                  <RotateCcw className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline ml-2">{isReorderMode ? "Exit Reorder" : "Reorder"}</span>
+                  <span className="sm:hidden">{isReorderMode ? "Exit" : "Reorder"}</span>
                 </Button>
               )}
             </div>
@@ -645,16 +651,17 @@ export function TierList({ players, isLoading }: TierListProps) {
 
       {/* Game Mode Tabs */}
       <Tabs value={selectedGameMode} onValueChange={(value) => setSelectedGameMode(value as GameMode)} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-card/80 backdrop-blur-sm border border-border/50">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 bg-card/80 backdrop-blur-sm border border-border/50 h-auto min-h-[40px] sm:min-h-[36px]">
           {(gameModes as readonly any[]).map((gameMode: any) => (
             <TabsTrigger
               key={gameMode.key}
               value={gameMode.key}
-              className="flex items-center gap-2 gamemode-tab-inactive data-[state=active]:gamemode-tab-active px-4 py-3 font-medium"
+              className="flex items-center justify-center gap-1 sm:gap-2 gamemode-tab-inactive data-[state=active]:gamemode-tab-active px-2 sm:px-4 py-2 sm:py-3 font-medium text-xs sm:text-sm"
               data-testid={`gamemode-tab-${gameMode.key}`}
             >
               <span className="text-sm">{gameMode.icon}</span>
-              <span className="text-sm font-medium">{gameMode.name}</span>
+              <span className="hidden sm:inline font-medium">{gameMode.name}</span>
+              <span className="sm:hidden font-medium text-xs">{gameMode.abbr}</span>
             </TabsTrigger>
           ))}
         </TabsList>
@@ -672,9 +679,9 @@ export function TierList({ players, isLoading }: TierListProps) {
                     return bPoints - aPoints;
                   })
                   .map((player, index) => (
-                    <div key={player.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors" data-testid={`leaderboard-player-${player.id}`}>
+                    <div key={player.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg hover:bg-muted/50 transition-colors" data-testid={`leaderboard-player-${player.id}`}>
                       {/* Ranking */}
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg minecraft-font ${
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center font-bold text-base sm:text-lg minecraft-font ${
                         index === 0 ? 'rank-1' :
                         index === 1 ? 'rank-2' :
                         index === 2 ? 'rank-3' :
@@ -684,8 +691,8 @@ export function TierList({ players, isLoading }: TierListProps) {
                       </div>
                       
                       {/* Player Info */}
-                      <div className="flex items-center gap-3 flex-1">
-                        <Avatar className="w-12 h-12 border-2 border-border/30">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                        <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-border/30 flex-shrink-0">
                           <AvatarImage 
                             src={`https://mc-heads.net/avatar/${player.name}/64`}
                             alt={`${player.name}'s skin`}
@@ -694,17 +701,17 @@ export function TierList({ players, isLoading }: TierListProps) {
                             {player.name.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <h3 className="font-semibold text-lg">{player.name}</h3>
-                          <p className="text-sm text-muted-foreground">{getTitleFromPoints(calculatePlayerPoints(player))}</p>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-semibold text-base sm:text-lg truncate">{player.name}</h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">{getTitleFromPoints(calculatePlayerPoints(player))}</p>
                         </div>
                       </div>
                       
                       {/* Overall Tier and Mode Badges */}
-                      <div className="flex flex-col items-end gap-2">
+                      <div className="flex flex-col items-end gap-1 sm:gap-2 flex-shrink-0">
                         {/* Points */}
-                        <div className="text-sm font-bold text-muted-foreground">
-                          Points: <span className="text-foreground">{calculatePlayerPoints(player)}</span>
+                        <div className="text-xs sm:text-sm font-bold text-muted-foreground">
+                          <span className="hidden sm:inline">Points: </span><span className="text-foreground">{calculatePlayerPoints(player)}</span>
                         </div>
                         
                         {/* Gamemode Badges */}
