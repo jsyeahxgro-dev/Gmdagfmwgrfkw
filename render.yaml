@@ -7,6 +7,7 @@ services:
     buildCommand: NPM_CONFIG_PRODUCTION=false npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /
+    preDeployCommand: npm run db:push
     envVars:
       - key: NODE_ENV
         value: production
