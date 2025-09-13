@@ -4,11 +4,11 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm install && npm run build
+    buildCommand: NPM_CONFIG_PRODUCTION=false npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: postgresql://fawnyxgaming1_x73x_user:B3YXyQI88c9IGxgquHNdFhDM88ZR2L13@dpg-d32nqsemcj7s739out20-a/fawnyxgaming1_x73x
+        value: # Add your database URL in Render Environment tab
