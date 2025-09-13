@@ -4,19 +4,11 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm ci --include=dev && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /
-    postDeployCommand: npm run db:push
     envVars:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: mcbe-tiers-db
-          property: connectionString
-
-databases:
-  - name: mcbe-tiers-db
-    plan: free
-    region: oregon
+        value: postgresql://fawnyxgaming1_x73x_user:B3YXyQI88c9IGxgquHNdFhDM88ZR2L13@dpg-d32nqsemcj7s739out20-a/fawnyxgaming1_x73x
