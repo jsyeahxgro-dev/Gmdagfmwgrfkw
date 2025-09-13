@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
@@ -57,19 +57,29 @@ export function PlayerProfileModal({ player, isOpen, onClose, playerRanking }: P
     }
   ];
 
-  // Get tier color for individual game modes
-  const getTierColor = (tier: string): string => {
-    if (!tier || tier === 'NR') return 'bg-gray-600 border-gray-500';
+  // Get tier color for individual game modes - matching the exact tier system colors
+  const getTierBadgeColor = (tier: string): string => {
+    if (!tier || tier === 'NR') {
+      return 'bg-gradient-to-r from-gray-600 to-gray-700 border-gray-500 text-gray-200';
+    }
     
-    if (tier.startsWith('HT')) return 'bg-red-600 border-red-500';
-    if (tier.startsWith('MIDT')) return 'bg-orange-600 border-orange-500';
-    if (tier.startsWith('LT')) return 'bg-blue-600 border-blue-500';
-    return 'bg-gray-600 border-gray-500';
+    // Match the exact tier colors used in the tier system
+    if (tier.startsWith('HT')) return 'bg-gradient-to-r from-red-500 to-red-600 border-red-400 text-white';
+    if (tier.startsWith('MIDT')) return 'bg-gradient-to-r from-orange-500 to-orange-600 border-orange-400 text-white';
+    if (tier.startsWith('LT')) return 'bg-gradient-to-r from-blue-500 to-blue-600 border-blue-400 text-white';
+    
+    return 'bg-gradient-to-r from-blue-500 to-purple-500 border-blue-400 text-white';
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-emerald-500/50">
+        <DialogHeader>
+          <DialogTitle className="sr-only">Player Profile</DialogTitle>
+          <DialogDescription className="sr-only">
+            Detailed view of {player?.name}'s ranking, points, and tier information across all game modes.
+          </DialogDescription>
+        </DialogHeader>
         {/* Close button */}
         <button
           onClick={onClose}
@@ -82,17 +92,19 @@ export function PlayerProfileModal({ player, isOpen, onClose, playerRanking }: P
         <div className="flex flex-col items-center space-y-6 py-6">
           {/* Player Avatar */}
           <div className="relative">
-            <div className="w-24 h-24 rounded-full border-4 border-emerald-400 overflow-hidden bg-slate-700">
+            <div className="w-28 h-28 rounded-full border-4 border-emerald-400 overflow-hidden bg-slate-700 shadow-xl shadow-emerald-500/20">
               <Avatar className="w-full h-full">
                 <AvatarImage 
-                  src={`https://mc-heads.net/avatar/${player.name}/96`}
+                  src={`https://mc-heads.net/avatar/${player.name}/128`}
                   alt={`${player.name}'s skin`}
                 />
-                <AvatarFallback className="bg-slate-700 text-white text-xl font-bold">
+                <AvatarFallback className="bg-slate-700 text-white text-2xl font-bold">
                   {player.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             </div>
+            {/* Glow effect */}
+            <div className="absolute inset-0 w-28 h-28 rounded-full border-4 border-emerald-400/30 animate-pulse"></div>
           </div>
 
           {/* Player Name */}
@@ -108,16 +120,18 @@ export function PlayerProfileModal({ player, isOpen, onClose, playerRanking }: P
           </div>
 
           {/* Ranking and Points */}
-          <div className="flex items-center gap-6 text-white">
+          <div className="flex items-center gap-8 text-white">
             {playerRanking && (
               <div className="text-center">
-                <div className="text-sm text-gray-400">Ranking</div>
-                <div className="text-xl font-bold">#{playerRanking} overall</div>
+                <div className="text-sm text-emerald-400 font-medium">RANK</div>
+                <div className="text-2xl font-bold minecraft-font">#{playerRanking}</div>
+                <div className="text-xs text-gray-400">overall</div>
               </div>
             )}
             <div className="text-center">
-              <div className="text-sm text-gray-400">Points</div>
-              <div className="text-xl font-bold">{points} pts</div>
+              <div className="text-sm text-emerald-400 font-medium">POINTS</div>
+              <div className="text-2xl font-bold minecraft-font">{points}</div>
+              <div className="text-xs text-gray-400">total pts</div>
             </div>
           </div>
 
@@ -127,24 +141,23 @@ export function PlayerProfileModal({ player, isOpen, onClose, playerRanking }: P
               Gamemode Tiers
             </h3>
             
-            <div className="grid grid-cols-3 gap-4 max-w-xs mx-auto">
-              {gameModeTiers.map((mode) => (
-                <div 
-                  key={mode.key}
-                  className="flex flex-col items-center"
-                  data-testid={`gamemode-tier-${mode.key}`}
-                >
-                  {/* Game Mode Icon */}
-                  <div className={`w-16 h-16 rounded-full border-2 flex items-center justify-center mb-2 ${getTierColor(mode.tier)}`}>
-                    <span className="text-2xl">{mode.icon}</span>
+            <div className="flex flex-wrap gap-2 justify-center max-w-sm mx-auto">
+              {gameModeTiers.map((mode) => {
+                const tierDisplayName = getTierDisplayName(mode.tier);
+                return (
+                  <div 
+                    key={mode.key}
+                    className={`px-3 py-2 rounded-lg text-sm font-bold shadow-lg border transition-all hover:scale-105 ${getTierBadgeColor(mode.tier)}`}
+                    data-testid={`gamemode-tier-${mode.key}`}
+                    title={`${mode.name}: ${tierDisplayName}`}
+                  >
+                    <div className="text-center">
+                      <div className="text-xs opacity-90 mb-0.5">{mode.abbr}</div>
+                      <div className="font-bold text-xs">{tierDisplayName}</div>
+                    </div>
                   </div>
-                  
-                  {/* Tier Label */}
-                  <div className="text-white text-xs font-bold text-center">
-                    {getTierDisplayName(mode.tier)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
