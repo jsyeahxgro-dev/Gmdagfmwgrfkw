@@ -1,6 +1,6 @@
 import { type Player, type InsertPlayer, players } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
 
 export interface IStorage {
@@ -209,7 +209,29 @@ export class MemStorage implements IStorage {
 
 export class DbStorage implements IStorage {
   constructor() {
-    this.initializeData();
+    this.createTableIfNotExists().then(() => {
+      this.initializeData();
+    });
+  }
+
+  private async createTableIfNotExists() {
+    try {
+      // Try to create table if it doesn't exist
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS players (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+          name TEXT NOT NULL,
+          skywars_tier TEXT NOT NULL DEFAULT 'NR',
+          midfight_tier TEXT NOT NULL DEFAULT 'NR',
+          uhc_tier TEXT NOT NULL DEFAULT 'NR',
+          nodebuff_tier TEXT NOT NULL DEFAULT 'NR',
+          bedfight_tier TEXT NOT NULL DEFAULT 'NR'
+        )
+      `);
+      console.log('Table created or already exists');
+    } catch (error) {
+      console.log('Table creation error (probably already exists):', error);
+    }
   }
 
   private async initializeData() {
