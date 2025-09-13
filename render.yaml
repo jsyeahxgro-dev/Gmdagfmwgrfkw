@@ -6,7 +6,8 @@ services:
     region: oregon
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
-    healthCheckPath: /api/players
+    healthCheckPath: /
+    postDeployCommand: npm run db:push
     envVars:
       - key: NODE_ENV
         value: production
