@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -62,7 +62,7 @@ function DraggablePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameM
     isDragging,
   } = useSortable({ 
     id: player.id,
-    disabled: !isAdmin  // Only allow dragging in admin mode
+    disabled: !isAdmin || !isReorderMode  // Only allow dragging in admin mode AND reorder mode
   });
 
   const style = {
@@ -71,8 +71,8 @@ function DraggablePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameM
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Only add drag listeners if in admin mode
-  const dragProps = isAdmin ? { ...attributes, ...listeners } : {};
+  // Only add drag listeners if in admin mode AND reorder mode
+  const dragProps = (isAdmin && isReorderMode) ? { ...attributes, ...listeners } : {};
 
   return (
     <div ref={setNodeRef} style={style} {...dragProps}>
@@ -262,6 +262,28 @@ export function TierList({ players, isLoading }: TierListProps) {
     },
   });
 
+  const reorderPlayersMutation = useMutation({
+    mutationFn: async ({ tierKey, playerOrders }: { tierKey: string; playerOrders: string[] }) => {
+      const response = await apiRequest("POST", "/api/players/reorder", { tierKey, playerOrders });
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate tier orders cache to keep it fresh
+      queryClient.invalidateQueries({ queryKey: ["/api/players/tier-orders", selectedGameMode] });
+      toast({
+        title: "Order updated",
+        description: "Player order has been saved",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save player order",
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredPlayers = players.filter((player) =>
     player.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -311,6 +333,40 @@ export function TierList({ players, isLoading }: TierListProps) {
 
   // Add support for custom player ordering within tiers
   const [playerOrders, setPlayerOrders] = useState<Record<string, string[]>>({});
+
+  // Fetch saved tier orders for the current game mode
+  const { data: tierOrdersData } = useQuery({
+    queryKey: ["/api/players/tier-orders", selectedGameMode],
+    queryFn: async () => {
+      if (selectedGameMode === 'overall') return {};
+      
+      const newOrders: Record<string, string[]> = {};
+      
+      // Fetch orders for each tier level
+      for (const tierLevel of tierLevels) {
+        const orderKey = `${selectedGameMode}-${tierLevel.key}`;
+        try {
+          const response = await apiRequest("GET", `/api/players/tier-order/${orderKey}`);
+          const data = await response.json();
+          if (data.playerOrders && data.playerOrders.length > 0) {
+            newOrders[orderKey] = data.playerOrders;
+          }
+        } catch (error) {
+          // Ignore errors for individual tier levels (they may not exist yet)
+        }
+      }
+      
+      return newOrders;
+    },
+    enabled: selectedGameMode !== 'overall',
+  });
+
+  // Update local state when tier orders data changes
+  useEffect(() => {
+    if (tierOrdersData) {
+      setPlayerOrders(tierOrdersData);
+    }
+  }, [tierOrdersData]);
 
   // Helper function to get tier type (High, Mid, Low)
   const getTierType = (tier: string): 'High' | 'Mid' | 'Low' | 'NR' => {
@@ -402,10 +458,19 @@ export function TierList({ players, isLoading }: TierListProps) {
       const newOrder = [...tierPlayers];
       [newOrder[currentIndex - 1], newOrder[currentIndex]] = [newOrder[currentIndex], newOrder[currentIndex - 1]];
       
+      const orderKey = `${selectedGameMode}-${tierKey}`;
+      const newPlayerIds = newOrder.map(p => p.id);
+      
       setPlayerOrders(prev => ({
         ...prev,
-        [`${selectedGameMode}-${tierKey}`]: newOrder.map(p => p.id)
+        [orderKey]: newPlayerIds
       }));
+      
+      // Persist the order change to the server
+      reorderPlayersMutation.mutate({
+        tierKey: orderKey,
+        playerOrders: newPlayerIds
+      });
     }
   };
 
@@ -475,10 +540,19 @@ export function TierList({ players, isLoading }: TierListProps) {
       const newOrder = [...tierPlayers];
       [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
       
+      const orderKey = `${selectedGameMode}-${tierKey}`;
+      const newPlayerIds = newOrder.map(p => p.id);
+      
       setPlayerOrders(prev => ({
         ...prev,
-        [`${selectedGameMode}-${tierKey}`]: newOrder.map(p => p.id)
+        [orderKey]: newPlayerIds
       }));
+      
+      // Persist the order change to the server
+      reorderPlayersMutation.mutate({
+        tierKey: orderKey,
+        playerOrders: newPlayerIds
+      });
     }
   };
 
@@ -561,6 +635,15 @@ export function TierList({ players, isLoading }: TierListProps) {
       return; // Can only reorder within the same tier level
     }
 
+    // Check if both players are in the same tier type (High, Mid, Low)
+    const activeTierType = getTierType(activeTier);
+    const overTierType = getTierType(overTier);
+    
+    if (activeTierType !== overTierType) {
+      // Don't allow reordering across tier type boundaries
+      return;
+    }
+
     // Update local order state
     const tierKey = activeTierLevel.key;
     const orderKey = `${selectedGameMode}-${tierKey}`;
@@ -579,6 +662,12 @@ export function TierList({ players, isLoading }: TierListProps) {
         ...prev,
         [orderKey]: newOrder
       }));
+
+      // Persist the order change to the server
+      reorderPlayersMutation.mutate({
+        tierKey: orderKey,
+        playerOrders: newOrder
+      });
     }
   };
 
