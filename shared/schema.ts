@@ -115,3 +115,20 @@ export const getTierDisplayName = (tier: string): string => {
   };
   return tierDisplayNames[tier] || tier;
 };
+
+// Reorder schema validation
+const gameModesForReorder = ['skywars', 'midfight', 'uhc', 'nodebuff', 'bedfight'] as const;
+const tierKeysForReorder = ['S Tier', 'A Tier', 'B Tier', 'C Tier', 'D Tier'] as const;
+
+export const reorderSchema = z.object({
+  tierKey: z.enum(tierKeysForReorder),
+  playerOrders: z.array(z.string().uuid()).min(1),
+});
+
+export type ReorderData = z.infer<typeof reorderSchema>;
+
+export const adminAuthSchema = z.object({
+  password: z.string().min(1, "Password is required"),
+});
+
+export type AdminAuthData = z.infer<typeof adminAuthSchema>;

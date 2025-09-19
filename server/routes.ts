@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPlayerSchema } from "@shared/schema";
+import { insertPlayerSchema, reorderSchema, adminAuthSchema, type InsertPlayer, type ReorderData } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -124,6 +124,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedPlayer);
     } catch (error) {
       res.status(500).json({ error: "Failed to update player tier" });
+    }
+  });
+
+  // Reorder players within a tier
+  app.post("/api/players/reorder", async (req, res) => {
+    try {
+      const validatedData = reorderSchema.parse(req.body);
+      const { tierKey, playerOrders } = validatedData;
+      
+      // Save the tier order using storage
+      await storage.setTierOrder(tierKey, playerOrders);
+      
+      res.json({ success: true, tierKey, playerOrders });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid reorder data", details: error.errors });
+      }
+      if (error instanceof Error && error.message === "Invalid player orders for tier") {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: "Failed to reorder players" });
+    }
+  });
+
+  // Get tier order
+  app.get("/api/players/tier-order/:tierKey", async (req, res) => {
+    try {
+      const { tierKey } = req.params;
+      const playerOrders = await storage.getTierOrder(tierKey);
+      res.json({ tierKey, playerOrders });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch tier order" });
     }
   });
 

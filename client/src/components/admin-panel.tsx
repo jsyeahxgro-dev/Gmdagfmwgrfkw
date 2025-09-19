@@ -717,46 +717,27 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     }
   };
 
-  const handlePlayerReorder = async (player: Player, direction: 'up' | 'down', sortedPlayers: Player[], currentIndex: number) => {
-    if (direction === 'up' && currentIndex === 0) return;
-    if (direction === 'down' && currentIndex === sortedPlayers.length - 1) return;
-    
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    const targetPlayer = sortedPlayers[targetIndex];
-    
-    // Get overall tier for both players
-    const currentTier = getTierForGameMode(player, 'overall');
-    const targetTier = getTierForGameMode(targetPlayer, 'overall');
-    
-    // Get tier hierarchy for validation  
-    const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
-    const currentTierLevel = tierOrder.indexOf(currentTier);
-    const targetTierLevel = tierOrder.indexOf(targetTier);
-    
-    // Check if move would violate tier hierarchy
-    if (direction === 'up' && currentTierLevel > targetTierLevel) {
+  const reorderPlayersMutation = useMutation({
+    mutationFn: async ({ tierKey, playerOrders }: { tierKey: string; playerOrders: string[] }) => {
+      const response = await apiRequest("POST", "/api/players/reorder", { tierKey, playerOrders });
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate queries to refresh all views
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       toast({
-        title: "Cannot move up",
-        description: `Cannot move ${currentTier} player above ${targetTier} player. First change the tier to ${targetTier} or higher to enable this move.`,
+        title: "Players reordered",
+        description: "Player order has been successfully updated",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to reorder players",
         variant: "destructive",
       });
-      return;
-    }
-    
-    if (direction === 'down' && currentTierLevel < targetTierLevel) {
-      toast({
-        title: "Cannot move down", 
-        description: `Cannot move ${currentTier} player below ${targetTier} player. First change the tier to ${targetTier} or lower to enable this move.`,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    toast({
-      title: "Reorder functionality",
-      description: "Player reordering is available via drag and drop on the main tier list view. Use the tier list to reorder players within and between tiers.",
-    });
-  };
+    },
+  });
 
   const filteredPlayers = players.filter((player) => {
     if (selectedGameMode === "overall") {
@@ -830,10 +811,14 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
       const newOrder = [...tierPlayers];
       [newOrder[currentIndex - 1], newOrder[currentIndex]] = [newOrder[currentIndex], newOrder[currentIndex - 1]];
       
+      const newPlayerOrders = newOrder.map(p => p.id);
       setPlayerOrders(prev => ({
         ...prev,
-        [tierKey]: newOrder.map(p => p.id)
+        [tierKey]: newPlayerOrders
       }));
+      
+      // Persist to server
+      reorderPlayersMutation.mutate({ tierKey, playerOrders: newPlayerOrders });
     }
   };
 
@@ -844,10 +829,14 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
       const newOrder = [...tierPlayers];
       [newOrder[currentIndex], newOrder[currentIndex + 1]] = [newOrder[currentIndex + 1], newOrder[currentIndex]];
       
+      const newPlayerOrders = newOrder.map(p => p.id);
       setPlayerOrders(prev => ({
         ...prev,
-        [tierKey]: newOrder.map(p => p.id)
+        [tierKey]: newPlayerOrders
       }));
+      
+      // Persist to server
+      reorderPlayersMutation.mutate({ tierKey, playerOrders: newPlayerOrders });
     }
   };
 

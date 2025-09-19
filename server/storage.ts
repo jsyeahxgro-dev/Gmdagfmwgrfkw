@@ -10,13 +10,18 @@ export interface IStorage {
   createPlayer(player: InsertPlayer): Promise<Player>;
   updatePlayer(id: string, player: Partial<InsertPlayer>): Promise<Player>;
   deletePlayer(id: string): Promise<boolean>;
+  getTierOrder(tierKey: string): Promise<string[]>;
+  setTierOrder(tierKey: string, playerOrders: string[]): Promise<boolean>;
+  validatePlayerOrders(tierKey: string, playerOrders: string[]): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private players: Map<string, Player>;
+  private tierOrders: Map<string, string[]>;
 
   constructor() {
     this.players = new Map();
+    this.tierOrders = new Map();
     this.seedInitialData();
   }
 
@@ -203,12 +208,57 @@ export class MemStorage implements IStorage {
   }
 
   async deletePlayer(id: string): Promise<boolean> {
-    return this.players.delete(id);
+    const deleted = this.players.delete(id);
+    if (deleted) {
+      // Remove from all tier orders
+      for (const [tierKey, orders] of Array.from(this.tierOrders.entries())) {
+        const newOrders = orders.filter((playerId: string) => playerId !== id);
+        if (newOrders.length !== orders.length) {
+          this.tierOrders.set(tierKey, newOrders);
+        }
+      }
+    }
+    return deleted;
+  }
+
+  async getTierOrder(tierKey: string): Promise<string[]> {
+    return this.tierOrders.get(tierKey) || [];
+  }
+
+  async setTierOrder(tierKey: string, playerOrders: string[]): Promise<boolean> {
+    // Validate that all players exist and belong to the specified tier
+    const isValid = await this.validatePlayerOrders(tierKey, playerOrders);
+    if (!isValid) {
+      throw new Error("Invalid player orders for tier");
+    }
+    
+    this.tierOrders.set(tierKey, playerOrders);
+    return true;
+  }
+
+  async validatePlayerOrders(tierKey: string, playerOrders: string[]): Promise<boolean> {
+    // Check for duplicates
+    if (new Set(playerOrders).size !== playerOrders.length) {
+      return false;
+    }
+
+    // Validate all player IDs exist
+    for (const playerId of playerOrders) {
+      const player = this.players.get(playerId);
+      if (!player) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }
 
 export class DbStorage implements IStorage {
+  private tierOrders: Map<string, string[]>;
+
   constructor() {
+    this.tierOrders = new Map();
     this.createTableIfNotExists().then(() => {
       this.initializeData();
     });
@@ -216,7 +266,7 @@ export class DbStorage implements IStorage {
 
   private async createTableIfNotExists() {
     try {
-      // Try to create table if it doesn't exist
+      // Try to create tables if they don't exist
       await db.execute(sql`
         CREATE TABLE IF NOT EXISTS players (
           id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -228,7 +278,16 @@ export class DbStorage implements IStorage {
           bedfight_tier TEXT NOT NULL DEFAULT 'NR'
         )
       `);
-      console.log('Table created or already exists');
+      
+      // Create tier_orders table for storing custom player orders
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS tier_orders (
+          tier_key VARCHAR PRIMARY KEY,
+          player_orders TEXT NOT NULL DEFAULT '[]'
+        )
+      `);
+      
+      console.log('Tables created or already exist');
     } catch (error) {
       console.log('Table creation error (probably already exists):', error);
     }
@@ -406,7 +465,95 @@ export class DbStorage implements IStorage {
 
   async deletePlayer(id: string): Promise<boolean> {
     const result = await db.delete(players).where(eq(players.id, id)).returning();
+    
+    if (result.length > 0) {
+      // Remove from all tier orders
+      for (const [tierKey, orders] of Array.from(this.tierOrders.entries())) {
+        const newOrders = orders.filter((playerId: string) => playerId !== id);
+        if (newOrders.length !== orders.length) {
+          this.tierOrders.set(tierKey, newOrders);
+          // Persist to database
+          await db.execute(sql`
+            INSERT INTO tier_orders (tier_key, player_orders) 
+            VALUES (${tierKey}, ${JSON.stringify(newOrders)})
+            ON CONFLICT (tier_key) 
+            DO UPDATE SET player_orders = EXCLUDED.player_orders
+          `);
+        }
+      }
+    }
+    
     return result.length > 0;
+  }
+
+  async getTierOrder(tierKey: string): Promise<string[]> {
+    // Check memory cache first
+    if (this.tierOrders.has(tierKey)) {
+      return this.tierOrders.get(tierKey) || [];
+    }
+
+    // Load from database
+    try {
+      const result = await db.execute(sql`
+        SELECT player_orders FROM tier_orders WHERE tier_key = ${tierKey}
+      `);
+      
+      if (result.rows.length > 0) {
+        const orders = JSON.parse(result.rows[0].player_orders as string);
+        this.tierOrders.set(tierKey, orders);
+        return orders;
+      }
+    } catch (error) {
+      console.log('Error loading tier orders:', error);
+    }
+
+    return [];
+  }
+
+  async setTierOrder(tierKey: string, playerOrders: string[]): Promise<boolean> {
+    // Validate that all players exist
+    const isValid = await this.validatePlayerOrders(tierKey, playerOrders);
+    if (!isValid) {
+      throw new Error("Invalid player orders for tier");
+    }
+
+    try {
+      // Save to database
+      await db.execute(sql`
+        INSERT INTO tier_orders (tier_key, player_orders) 
+        VALUES (${tierKey}, ${JSON.stringify(playerOrders)})
+        ON CONFLICT (tier_key) 
+        DO UPDATE SET player_orders = EXCLUDED.player_orders
+      `);
+
+      // Update memory cache
+      this.tierOrders.set(tierKey, playerOrders);
+      return true;
+    } catch (error) {
+      console.log('Error saving tier orders:', error);
+      throw new Error("Failed to save tier order");
+    }
+  }
+
+  async validatePlayerOrders(tierKey: string, playerOrders: string[]): Promise<boolean> {
+    // Check for duplicates
+    if (new Set(playerOrders).size !== playerOrders.length) {
+      return false;
+    }
+
+    // Validate all player IDs exist in database
+    try {
+      for (const playerId of playerOrders) {
+        const result = await db.select().from(players).where(eq(players.id, playerId));
+        if (result.length === 0) {
+          return false;
+        }
+      }
+      return true;
+    } catch (error) {
+      console.log('Error validating player orders:', error);
+      return false;
+    }
   }
 }
 
