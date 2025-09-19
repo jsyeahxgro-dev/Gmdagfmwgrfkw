@@ -25,11 +25,24 @@ const authenticatedApiRequest = async (method: string, url: string, data?: any) 
     headers['Authorization'] = `Bearer ${token}`;
   }
   
-  return fetch(url, {
+  const response = await fetch(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
   });
+  
+  // If unauthorized, clear token and throw error to trigger re-login
+  if (response.status === 401) {
+    localStorage.removeItem('adminToken');
+    throw new Error('Session expired. Please log in again.');
+  }
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error || `Request failed with status ${response.status}`);
+  }
+  
+  return response;
 };
 import { X, Edit, Trash2, Plus, ChevronUp, ChevronDown, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
 import { insertPlayerSchema, tierOptions, gameModes, tierLevels, type Player, type InsertPlayer, type GameMode, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
@@ -437,7 +450,14 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
     mutationFn: async (data: EditPlayerData) => {
       if (!player || !gameMode) return;
       
-      // Update only the specific tier for the gamemode, preserving all other tiers
+      // If name changed, update the player first
+      if (data.name !== player.name) {
+        await authenticatedApiRequest("PATCH", `/api/players/${player.id}`, { 
+          name: data.name 
+        });
+      }
+      
+      // Update the specific tier for the gamemode
       const response = await authenticatedApiRequest("PATCH", `/api/players/${player.id}/tier`, { 
         gameMode, 
         tier: data.tier 
@@ -449,13 +469,14 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
       onSuccess();
       toast({
         title: "Player updated",
-        description: "Player tier has been successfully updated",
+        description: "Player has been successfully updated",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Edit player error:', error);
       toast({
-        title: "Error",
-        description: "Failed to update player",
+        title: "Error", 
+        description: error?.message || "Failed to update player. Make sure you're logged in.",
         variant: "destructive",
       });
     },
