@@ -13,6 +13,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+
+// Add authorization header to API requests for admin operations
+const authenticatedApiRequest = async (method: string, url: string, data?: any) => {
+  const token = localStorage.getItem('adminToken');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return fetch(url, {
+    method,
+    headers,
+    body: data ? JSON.stringify(data) : undefined,
+  });
+};
 import { X, Edit, Trash2, Plus, ChevronUp, ChevronDown, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
 import { insertPlayerSchema, tierOptions, gameModes, tierLevels, type Player, type InsertPlayer, type GameMode, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
 import { PlayerCard } from "./player-card";
@@ -124,7 +142,7 @@ function AddPlayerDialog({ open, onClose, onSuccess, gameMode }: AddPlayerDialog
       };
       const totalPoints = calculatePlayerPoints(tempPlayer);
       
-      const response = await apiRequest("POST", "/api/players", playerData);
+      const response = await authenticatedApiRequest("POST", "/api/players", playerData);
       return response.json();
     },
     onSuccess: () => {
@@ -261,7 +279,7 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
         bedfightTier: data.bedfightTier,
       };
       
-      const response = await apiRequest("PATCH", `/api/players/${player.id}`, updateData);
+      const response = await authenticatedApiRequest("PATCH", `/api/players/${player.id}`, updateData);
       return response.json();
     },
     onSuccess: () => {
@@ -420,7 +438,7 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
       if (!player || !gameMode) return;
       
       // Update only the specific tier for the gamemode, preserving all other tiers
-      const response = await apiRequest("PATCH", `/api/players/${player.id}/tier`, { 
+      const response = await authenticatedApiRequest("PATCH", `/api/players/${player.id}/tier`, { 
         gameMode, 
         tier: data.tier 
       });
@@ -617,11 +635,12 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
 
   const loginMutation = useMutation({
     mutationFn: async (data: { password: string }) => {
-      if (data.password === "mmcadminpaneltwin123") {
-        return { success: true };
-      } else {
-        throw new Error("Invalid password");
+      const response = await apiRequest("POST", "/api/admin/auth", data);
+      const result = await response.json();
+      if (result.token) {
+        localStorage.setItem('adminToken', result.token);
       }
+      return result;
     },
     onSuccess: () => {
       setIsAuthenticated(true);
@@ -644,7 +663,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
 
   const deletePlayerMutation = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest("DELETE", `/api/players/${id}`);
+      await authenticatedApiRequest("DELETE", `/api/players/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
@@ -668,7 +687,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
       const gameModeField = `${gameMode}Tier` as keyof InsertPlayer;
       (updateData as any)[gameModeField] = "NR";
       
-      const response = await apiRequest("PATCH", `/api/players/${playerId}`, updateData);
+      const response = await authenticatedApiRequest("PATCH", `/api/players/${playerId}`, updateData);
       return response.json();
     },
     onSuccess: () => {
@@ -719,7 +738,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
 
   const reorderPlayersMutation = useMutation({
     mutationFn: async ({ tierKey, playerOrders }: { tierKey: string; playerOrders: string[] }) => {
-      const response = await apiRequest("POST", "/api/players/reorder", { tierKey, playerOrders });
+      const response = await authenticatedApiRequest("POST", "/api/players/reorder", { tierKey, playerOrders });
       return response.json();
     },
     onSuccess: () => {

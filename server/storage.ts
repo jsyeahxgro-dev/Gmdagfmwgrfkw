@@ -242,10 +242,32 @@ export class MemStorage implements IStorage {
       return false;
     }
 
-    // Validate all player IDs exist
+    // Map tier keys to their tier values  
+    const tierMapping: Record<string, string[]> = {
+      'S Tier': ['HT1', 'MIDT1', 'LT1'],
+      'A Tier': ['HT2', 'MIDT2', 'LT2'], 
+      'B Tier': ['HT3', 'MIDT3', 'LT3'],
+      'C Tier': ['HT4', 'MIDT4', 'LT4'],
+      'D Tier': ['HT5', 'MIDT5', 'LT5']
+    };
+
+    const allowedTiers = tierMapping[tierKey];
+    if (!allowedTiers) {
+      return false;
+    }
+
+    // Validate all player IDs exist and belong to the correct tier
     for (const playerId of playerOrders) {
       const player = this.players.get(playerId);
       if (!player) {
+        return false;
+      }
+      
+      // Check if player has any tier that matches the tier key
+      const playerTiers = [player.skywarsTier, player.midfightTier, player.uhcTier, player.nodebuffTier, player.bedfightTier];
+      const hasMatchingTier = playerTiers.some(tier => allowedTiers.includes(tier));
+      
+      if (!hasMatchingTier) {
         return false;
       }
     }
@@ -541,11 +563,33 @@ export class DbStorage implements IStorage {
       return false;
     }
 
-    // Validate all player IDs exist in database
+    // Map tier keys to their tier values
+    const tierMapping: Record<string, string[]> = {
+      'S Tier': ['HT1', 'MIDT1', 'LT1'],
+      'A Tier': ['HT2', 'MIDT2', 'LT2'],
+      'B Tier': ['HT3', 'MIDT3', 'LT3'], 
+      'C Tier': ['HT4', 'MIDT4', 'LT4'],
+      'D Tier': ['HT5', 'MIDT5', 'LT5']
+    };
+
+    const allowedTiers = tierMapping[tierKey];
+    if (!allowedTiers) {
+      return false;
+    }
+
+    // Validate all player IDs exist in database and belong to correct tier
     try {
       for (const playerId of playerOrders) {
         const result = await db.select().from(players).where(eq(players.id, playerId));
         if (result.length === 0) {
+          return false;
+        }
+        
+        const player = result[0];
+        const playerTiers = [player.skywarsTier, player.midfightTier, player.uhcTier, player.nodebuffTier, player.bedfightTier];
+        const hasMatchingTier = playerTiers.some(tier => allowedTiers.includes(tier));
+        
+        if (!hasMatchingTier) {
           return false;
         }
       }

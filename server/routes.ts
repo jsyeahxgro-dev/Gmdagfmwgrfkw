@@ -1,8 +1,27 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPlayerSchema, reorderSchema, adminAuthSchema, type InsertPlayer, type ReorderData } from "@shared/schema";
 import { z } from "zod";
+
+// Simple in-memory session store (in production, use Redis or database)
+const adminSessions = new Set<string>();
+
+// Authentication middleware
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!sessionId || !adminSessions.has(sessionId)) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  next();
+}
+
+// Generate simple session token
+function generateSessionToken(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all players
@@ -29,7 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new player or update existing player tier
-  app.post("/api/players", async (req, res) => {
+  app.post("/api/players", requireAuth, async (req, res) => {
     try {
       const validatedData = insertPlayerSchema.parse(req.body);
       
@@ -73,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update player
-  app.patch("/api/players/:id", async (req, res) => {
+  app.patch("/api/players/:id", requireAuth, async (req, res) => {
     try {
       const updateData = insertPlayerSchema.partial().parse(req.body);
       const player = await storage.updatePlayer(req.params.id, updateData);
@@ -90,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete player
-  app.delete("/api/players/:id", async (req, res) => {
+  app.delete("/api/players/:id", requireAuth, async (req, res) => {
     try {
       const success = await storage.deletePlayer(req.params.id);
       if (!success) {
@@ -103,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reorder player tier
-  app.patch("/api/players/:id/tier", async (req, res) => {
+  app.patch("/api/players/:id/tier", requireAuth, async (req, res) => {
     try {
       const { gameMode, tier } = req.body;
       if (!gameMode || !tier) {
@@ -128,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reorder players within a tier
-  app.post("/api/players/reorder", async (req, res) => {
+  app.post("/api/players/reorder", requireAuth, async (req, res) => {
     try {
       const validatedData = reorderSchema.parse(req.body);
       const { tierKey, playerOrders } = validatedData;
@@ -161,11 +180,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin authentication
   app.post("/api/admin/auth", (req, res) => {
-    const { password } = req.body;
-    if (password === "admin123") {
-      res.json({ success: true });
-    } else {
-      res.status(401).json({ error: "Invalid password" });
+    try {
+      const validatedData = adminAuthSchema.parse(req.body);
+      const { password } = validatedData;
+      
+      // Use environment variable or hardcoded for demo (change in production)
+      const adminPassword = process.env.ADMIN_PASSWORD || "mmcadminpaneltwin123";
+      
+      if (password === adminPassword) {
+        const sessionToken = generateSessionToken();
+        adminSessions.add(sessionToken);
+        
+        // Set token to expire after 1 hour
+        setTimeout(() => {
+          adminSessions.delete(sessionToken);
+        }, 60 * 60 * 1000);
+        
+        res.json({ success: true, token: sessionToken });
+      } else {
+        res.status(401).json({ error: "Invalid password" });
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid auth data", details: error.errors });
+      }
+      res.status(500).json({ error: "Authentication failed" });
     }
   });
 
