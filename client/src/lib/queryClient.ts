@@ -12,12 +12,30 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: Record<string, string> = {};
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  // Include admin token if available
+  const adminToken = localStorage.getItem('adminToken');
+  if (adminToken) {
+    headers["Authorization"] = `Bearer ${adminToken}`;
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
+
+  // If unauthorized, remove the token and throw error
+  if (res.status === 401) {
+    localStorage.removeItem('adminToken');
+    throw new Error(`${res.status}: Authentication required`);
+  }
 
   await throwIfResNotOk(res);
   return res;

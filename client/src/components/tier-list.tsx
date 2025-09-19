@@ -15,30 +15,10 @@ import { apiRequest } from "@/lib/queryClient";
 import type { Player, GameMode } from "@shared/schema";
 import { gameModes, tierLevels, getTierColor, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverEvent,
-  DragOverlay,
-  DragStartEvent,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import {
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { useDroppable } from "@dnd-kit/core";
+// Removed drag and drop imports - using only buttons for reordering
 
-// Draggable Player Component
-interface DraggablePlayerCardProps {
+// Simple Player Card Component - no drag and drop
+interface SimplePlayerCardProps {
   player: Player;
   ranking?: number;
   isAdmin?: boolean;
@@ -52,69 +32,38 @@ interface DraggablePlayerCardProps {
   canMoveDown?: boolean;
 }
 
-function DraggablePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameMode, isReorderMode, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: DraggablePlayerCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ 
-    id: player.id,
-    disabled: !isAdmin || !isReorderMode  // Only allow dragging in admin mode AND reorder mode
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  // Only add drag listeners if in admin mode AND reorder mode
-  const dragProps = (isAdmin && isReorderMode) ? { ...attributes, ...listeners } : {};
-
+function SimplePlayerCard({ player, ranking, isAdmin, onEdit, onDelete, gameMode, isReorderMode, onMoveUp, onMoveDown, canMoveUp, canMoveDown }: SimplePlayerCardProps) {
   return (
-    <div ref={setNodeRef} style={style} {...dragProps}>
-      <PlayerCard
-        player={player}
-        ranking={ranking}
-        isAdmin={isAdmin}
-        simplified={true}
-        gameMode={gameMode}
-        isReorderMode={isReorderMode}
-        onMoveUp={onMoveUp}
-        onMoveDown={onMoveDown}
-        canMoveUp={canMoveUp}
-        canMoveDown={canMoveDown}
-        onEdit={onEdit}
-        onDelete={onDelete}
-      />
-    </div>
+    <PlayerCard
+      player={player}
+      ranking={ranking}
+      isAdmin={isAdmin}
+      simplified={true}
+      gameMode={gameMode}
+      isReorderMode={isReorderMode}
+      onMoveUp={onMoveUp}
+      onMoveDown={onMoveDown}
+      canMoveUp={canMoveUp}
+      canMoveDown={canMoveDown}
+      onEdit={onEdit}
+      onDelete={onDelete}
+    />
   );
 }
 
-// Droppable Tier Component
-interface DroppableTierProps {
+// Simple Tier Component - no drag and drop
+interface SimpleTierProps {
   tierKey: string;
   tierLevel: any;
   children: React.ReactNode;
-  isAdminMode: boolean;
 }
 
-function DroppableTier({ tierKey, tierLevel, children, isAdminMode }: DroppableTierProps) {
-  const { isOver, setNodeRef } = useDroppable({
-    id: `tier-${tierKey}`,
-  });
-
+function SimpleTier({ tierKey, tierLevel, children }: SimpleTierProps) {
   const hasPlayers = React.Children.count(children) > 0;
 
   return (
     <Card 
-      ref={setNodeRef}
-      className={`min-h-[400px] bg-card/30 backdrop-blur-sm border-border/50 ${
-        isOver && isAdminMode ? 'border-primary border-2' : ''
-      }`}
+      className="min-h-[400px] bg-card/30 backdrop-blur-sm border-border/50"
       data-testid={`tier-section-${tierLevel.key}`}
     >
       <CardHeader className="pb-3">
@@ -133,10 +82,6 @@ function DroppableTier({ tierKey, tierLevel, children, isAdminMode }: DroppableT
       <CardContent className="space-y-3">
         {hasPlayers ? (
           children
-        ) : isAdminMode ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">Drop players here</p>
-          </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
             <p className="text-sm">No players in this tier</p>
@@ -158,7 +103,7 @@ export function TierList({ players, isLoading }: TierListProps) {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activePlayer, setActivePlayer] = useState<Player | null>(null);
+  // Removed activePlayer state - no longer needed without drag and drop
   
   // Handle admin mode state from admin panel
   const handleAdminLogin = () => {
@@ -189,14 +134,7 @@ export function TierList({ players, isLoading }: TierListProps) {
     }
   };
 
-  // Drag and drop sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
+  // Removed drag and drop sensors - using only buttons for reordering
 
   const deletePlayerMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -584,92 +522,7 @@ export function TierList({ players, isLoading }: TierListProps) {
     return players;
   };
 
-  // Drag handlers
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const player = players.find(p => p.id === active.id);
-    setActivePlayer(player || null);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActivePlayer(null);
-
-    if (!over || !isAdminMode) return;
-
-    const playerId = active.id as string;
-    const overId = over.id as string;
-    const activePlayer = filteredPlayers.find(p => p.id === playerId);
-    if (!activePlayer) return;
-
-    // Handle dropping on tier areas (moving to different tier)
-    if (overId.startsWith("tier-")) {
-      const targetTierKey = overId.replace("tier-", "");
-      const tierLevel = tierLevels.find(t => t.key === targetTierKey);
-      
-      if (tierLevel && selectedGameMode !== "overall") {
-        // Move to first tier in the target tier level (e.g., T1 -> HT1)
-        const firstTierInLevel = (tierLevel.tiers as readonly string[])[0];
-        
-        updatePlayerTierMutation.mutate({
-          playerId,
-          gameMode: selectedGameMode,
-          tier: firstTierInLevel,
-        });
-      }
-      return;
-    }
-
-    // Handle reordering within same tier level
-    const overPlayer = filteredPlayers.find(p => p.id === overId);
-    if (!overPlayer) return;
-
-    const activeTier = getTierForGameMode(activePlayer, selectedGameMode);
-    const overTier = getTierForGameMode(overPlayer, selectedGameMode);
-
-    // Find which tier level both players belong to
-    const activeTierLevel = tierLevels.find(t => (t.tiers as readonly string[]).includes(activeTier));
-    const overTierLevel = tierLevels.find(t => (t.tiers as readonly string[]).includes(overTier));
-
-    if (!activeTierLevel || !overTierLevel || activeTierLevel.key !== overTierLevel.key) {
-      return; // Can only reorder within the same tier level
-    }
-
-    // Check if both players are in the same tier type (High, Mid, Low)
-    const activeTierType = getTierType(activeTier);
-    const overTierType = getTierType(overTier);
-    
-    if (activeTierType !== overTierType) {
-      // Don't allow reordering across tier type boundaries
-      return;
-    }
-
-    // Update local order state
-    const tierKey = activeTierLevel.key;
-    const orderKey = `${selectedGameMode}-${tierKey}`;
-    const currentPlayers = getOrderedPlayersForTier(tierKey);
-    const activeIndex = currentPlayers.findIndex(p => p.id === playerId);
-    const overIndex = currentPlayers.findIndex(p => p.id === overId);
-
-    if (activeIndex !== -1 && overIndex !== -1) {
-      const newOrder = arrayMove(
-        currentPlayers.map(p => p.id),
-        activeIndex,
-        overIndex
-      );
-      
-      setPlayerOrders(prev => ({
-        ...prev,
-        [orderKey]: newOrder
-      }));
-
-      // Persist the order change to the server
-      reorderPlayersMutation.mutate({
-        tierKey: orderKey,
-        playerOrders: newOrder
-      });
-    }
-  };
+  // Removed drag handlers - using only up/down arrow buttons for reordering
 
   if (isLoading) {
     return (
@@ -685,13 +538,7 @@ export function TierList({ players, isLoading }: TierListProps) {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="space-y-6">
+    <div className="space-y-6">
       {/* Header with Search and Admin */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-between">
         <div className="relative w-full sm:flex-1 max-w-md">
@@ -880,18 +727,13 @@ export function TierList({ players, isLoading }: TierListProps) {
                 const playersInTier = getOrderedPlayersForTier(tierLevel.key);
                 
                 return (
-                  <SortableContext 
+                  <SimpleTier 
                     key={tierLevel.key} 
-                    items={playersInTier.map(p => p.id)}
-                    strategy={verticalListSortingStrategy}
+                    tierKey={tierLevel.key}
+                    tierLevel={tierLevel}
                   >
-                    <DroppableTier 
-                      tierKey={tierLevel.key}
-                      tierLevel={tierLevel}
-                      isAdminMode={isAdminMode}
-                    >
                       {playersInTier.map((player, index) => (
-                        <DraggablePlayerCard
+                        <SimplePlayerCard
                           key={player.id}
                           player={player}
                           ranking={index + 1}
@@ -915,8 +757,7 @@ export function TierList({ players, isLoading }: TierListProps) {
                           }}
                         />
                       ))}
-                    </DroppableTier>
-                  </SortableContext>
+                  </SimpleTier>
                 );
               })}
             </div>
@@ -936,19 +777,6 @@ export function TierList({ players, isLoading }: TierListProps) {
           isAuthenticated={isAuthenticated}
         />
       )}
-      </div>
-
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {activePlayer ? (
-          <PlayerCard
-            player={activePlayer}
-            isAdmin={isAdminMode}
-            simplified={true}
-            gameMode={selectedGameMode}
-          />
-        ) : null}
-      </DragOverlay>
 
       {/* Tier Change Confirmation Dialog */}
       <AlertDialog open={showTierChangeDialog} onOpenChange={setShowTierChangeDialog}>
@@ -996,6 +824,6 @@ export function TierList({ players, isLoading }: TierListProps) {
             : undefined
         }
       />
-    </DndContext>
+    </div>
   );
 }
