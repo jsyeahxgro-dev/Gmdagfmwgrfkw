@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -156,6 +156,9 @@ function AddPlayerDialog({ open, onClose, onSuccess, gameMode }: AddPlayerDialog
       <DialogContent className="w-full max-w-md" data-testid="add-player-dialog">
         <DialogHeader>
           <DialogTitle>Add New Player</DialogTitle>
+          <DialogDescription>
+            Add a new player to the {gameModes.find(m => m.key === gameMode)?.name || gameMode} tier list.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -305,6 +308,9 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
       <DialogContent className="w-full max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="overall-edit-dialog">
         <DialogHeader>
           <DialogTitle>Edit Player - Overall</DialogTitle>
+          <DialogDescription>
+            Edit {player?.name}'s tiers across all game modes.
+          </DialogDescription>
         </DialogHeader>
         {player && (
           <>
@@ -480,6 +486,9 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
       <DialogContent className="w-full max-w-md" data-testid="edit-player-dialog">
         <DialogHeader>
           <DialogTitle>Edit Player</DialogTitle>
+          <DialogDescription>
+            Edit {player?.name}'s tier for {gameModes.find(m => m.key === gameMode)?.name || gameMode}.
+          </DialogDescription>
         </DialogHeader>
         {player && gameMode && (
           <>
@@ -730,6 +739,14 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
 
   const reorderPlayersMutation = useMutation({
     mutationFn: async ({ tierKey, playerOrders }: { tierKey: string; playerOrders: string[] }) => {
+      console.log('Reorder request:', { tierKey, playerOrders });
+      
+      // Check if admin is authenticated
+      const adminToken = localStorage.getItem('adminToken');
+      if (!adminToken) {
+        throw new Error('Admin authentication required. Please log in again.');
+      }
+      
       const response = await apiRequest("POST", "/api/players/reorder", { tierKey, playerOrders });
       return response.json();
     },
@@ -742,9 +759,10 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
       });
     },
     onError: (error: any) => {
+      console.error('Reorder error:', error);
       toast({
-        title: "Error",
-        description: error?.message || "Failed to reorder players",
+        title: "Error", 
+        description: error?.message || "Failed to reorder players. Please try logging in again.",
         variant: "destructive",
       });
     },
