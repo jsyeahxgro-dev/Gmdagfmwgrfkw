@@ -14,36 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
-// Add authorization header to API requests for admin operations
-const authenticatedApiRequest = async (method: string, url: string, data?: any) => {
-  const token = localStorage.getItem('adminToken');
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-  });
-  
-  // If unauthorized, clear token and throw error to trigger re-login
-  if (response.status === 401) {
-    localStorage.removeItem('adminToken');
-    throw new Error('Session expired. Please log in again.');
-  }
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.error || `Request failed with status ${response.status}`);
-  }
-  
-  return response;
-};
+// Using shared apiRequest from queryClient which already includes authentication
 import { X, Edit, Trash2, Plus, ChevronUp, ChevronDown, RotateCcw, ArrowUp, ArrowDown } from "lucide-react";
 import { insertPlayerSchema, tierOptions, gameModes, tierLevels, type Player, type InsertPlayer, type GameMode, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
 import { PlayerCard } from "./player-card";
@@ -155,7 +126,7 @@ function AddPlayerDialog({ open, onClose, onSuccess, gameMode }: AddPlayerDialog
       };
       const totalPoints = calculatePlayerPoints(tempPlayer);
       
-      const response = await authenticatedApiRequest("POST", "/api/players", playerData);
+      const response = await apiRequest("POST", "/api/players", playerData);
       return response.json();
     },
     onSuccess: () => {
@@ -292,7 +263,7 @@ function OverallEditDialog({ open, onClose, player, onSuccess }: OverallEditDial
         bedfightTier: data.bedfightTier,
       };
       
-      const response = await authenticatedApiRequest("PATCH", `/api/players/${player.id}`, updateData);
+      const response = await apiRequest("PATCH", `/api/players/${player.id}`, updateData);
       return response.json();
     },
     onSuccess: () => {
@@ -452,13 +423,13 @@ function EditPlayerDialog({ open, onClose, player, gameMode, onSuccess }: EditPl
       
       // If name changed, update the player first
       if (data.name !== player.name) {
-        await authenticatedApiRequest("PATCH", `/api/players/${player.id}`, { 
+        await apiRequest("PATCH", `/api/players/${player.id}`, { 
           name: data.name 
         });
       }
       
       // Update the specific tier for the gamemode
-      const response = await authenticatedApiRequest("PATCH", `/api/players/${player.id}/tier`, { 
+      const response = await apiRequest("PATCH", `/api/players/${player.id}/tier`, { 
         gameMode, 
         tier: data.tier 
       });
@@ -684,7 +655,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
 
   const deletePlayerMutation = useMutation({
     mutationFn: async (id: string) => {
-      await authenticatedApiRequest("DELETE", `/api/players/${id}`);
+      await apiRequest("DELETE", `/api/players/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
@@ -708,7 +679,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
       const gameModeField = `${gameMode}Tier` as keyof InsertPlayer;
       (updateData as any)[gameModeField] = "NR";
       
-      const response = await authenticatedApiRequest("PATCH", `/api/players/${playerId}`, updateData);
+      const response = await apiRequest("PATCH", `/api/players/${playerId}`, updateData);
       return response.json();
     },
     onSuccess: () => {
@@ -759,7 +730,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
 
   const reorderPlayersMutation = useMutation({
     mutationFn: async ({ tierKey, playerOrders }: { tierKey: string; playerOrders: string[] }) => {
-      const response = await authenticatedApiRequest("POST", "/api/players/reorder", { tierKey, playerOrders });
+      const response = await apiRequest("POST", "/api/players/reorder", { tierKey, playerOrders });
       return response.json();
     },
     onSuccess: () => {
@@ -989,20 +960,21 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
 
   return (
     <>
-      <Dialog open onOpenChange={onClose}>
-        <DialogContent className="w-full max-w-6xl max-h-[90vh] overflow-y-auto" data-testid="admin-panel">
-          <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle>Admin Panel</DialogTitle>
+      <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto p-6 bg-background rounded-lg border" data-testid="admin-panel">
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Admin Panel</h2>
               <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => setShowAddDialog(true)}
-                  size="sm"
-                  data-testid="add-player-button"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Player
-                </Button>
+                {selectedGameMode !== "overall" && (
+                  <Button
+                    onClick={() => setShowAddDialog(true)}
+                    size="sm"
+                    data-testid="add-player-button"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Player
+                  </Button>
+                )}
                 {selectedGameMode !== "overall" && (
                   <Button
                     onClick={() => setIsReorderMode(!isReorderMode)}
@@ -1017,11 +989,11 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                 <Button variant="ghost" size="sm" onClick={onClose} data-testid="close-admin-button">
                   <X className="w-4 h-4" />
                 </Button>
-              </div>
             </div>
-          </DialogHeader>
+          </div>
+        </div>
 
-          <div className="space-y-6">
+        <div className="space-y-6">
             {/* Game Mode Tabs */}
             <Tabs value={selectedGameMode} onValueChange={(value) => setSelectedGameMode(value as GameMode)} className="w-full">
               <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-card/80 backdrop-blur-sm border border-border/50">
@@ -1226,8 +1198,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
               ))}
             </Tabs>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
 
       {/* Dialogs */}
       <AddPlayerDialog 

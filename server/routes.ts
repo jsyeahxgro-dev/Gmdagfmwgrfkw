@@ -184,8 +184,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = adminAuthSchema.parse(req.body);
       const { password } = validatedData;
       
-      // Use environment variable or hardcoded for demo (change in production)
-      const adminPassword = process.env.ADMIN_PASSWORD || "mmcadminpaneltwin123";
+      // Use environment variable only - no hardcoded fallback for security
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      
+      if (!adminPassword) {
+        console.error("ADMIN_PASSWORD environment variable is not set");
+        return res.status(500).json({ error: "Server configuration error" });
+      }
       
       if (password === adminPassword) {
         const sessionToken = generateSessionToken();

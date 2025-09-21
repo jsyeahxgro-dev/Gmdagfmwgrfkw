@@ -15,6 +15,7 @@ import { apiRequest } from "@/lib/queryClient";
 import type { Player, GameMode } from "@shared/schema";
 import { gameModes, tierLevels, getTierColor, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 // Removed drag and drop imports - using only buttons for reordering
 
 // Simple Player Card Component - no drag and drop
@@ -767,15 +768,24 @@ export function TierList({ players, isLoading }: TierListProps) {
 
       {/* Admin Panel */}
       {showAdminPanel && (
-        <AdminPanel 
-          onClose={() => {
+        <Dialog open={showAdminPanel} onOpenChange={(open) => {
+          if (!open) {
             setShowAdminPanel(false);
             setEditingPlayer(null);
-          }}
-          onAdminLogin={handleAdminLogin}
-          editingPlayer={editingPlayer}
-          isAuthenticated={isAuthenticated}
-        />
+          }
+        }}>
+          <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden p-0">
+            <AdminPanel 
+              onClose={() => {
+                setShowAdminPanel(false);
+                setEditingPlayer(null);
+              }}
+              onAdminLogin={handleAdminLogin}
+              editingPlayer={editingPlayer}
+              isAuthenticated={isAuthenticated}
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Tier Change Confirmation Dialog */}
