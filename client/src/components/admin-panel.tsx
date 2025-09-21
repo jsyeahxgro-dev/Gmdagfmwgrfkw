@@ -626,6 +626,40 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     enabled: isAuthenticated,
   });
 
+  // Fetch saved tier orders for the current game mode
+  const { data: tierOrdersData } = useQuery({
+    queryKey: ["/api/players/tier-orders", selectedGameMode],
+    queryFn: async () => {
+      if (selectedGameMode === 'overall') return {};
+      
+      const newOrders: Record<string, string[]> = {};
+      
+      // Fetch orders for each tier level
+      for (const tierLevel of tierLevels) {
+        const orderKey = `${selectedGameMode}-${tierLevel.key}`;
+        try {
+          const response = await apiRequest("GET", `/api/players/tier-order/${orderKey}`);
+          const data = await response.json();
+          if (data.playerOrders && data.playerOrders.length > 0) {
+            newOrders[orderKey] = data.playerOrders;
+          }
+        } catch (error) {
+          // Ignore errors for individual tier levels (they may not exist yet)
+        }
+      }
+      
+      return newOrders;
+    },
+    enabled: isAuthenticated && selectedGameMode !== 'overall',
+  });
+
+  // Update local state when tier orders data changes
+  useEffect(() => {
+    if (tierOrdersData) {
+      setPlayerOrders(tierOrdersData);
+    }
+  }, [tierOrdersData]);
+
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -753,6 +787,7 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     onSuccess: () => {
       // Invalidate queries to refresh all views
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/players/tier-orders", selectedGameMode] });
       toast({
         title: "Players reordered",
         description: "Player order has been successfully updated",
@@ -797,6 +832,34 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
       const bTier = getTierForGameMode(b, selectedGameMode);
       return tierOrder.indexOf(aTier) - tierOrder.indexOf(bTier);
     });
+  };
+
+  const getOrderedPlayersForTier = (tierKey: string) => {
+    const players = getPlayersForTier(tierKey);
+    const orderKey = `${selectedGameMode}-${tierKey}`;
+    const savedOrder = playerOrders[orderKey];
+    
+    if (savedOrder) {
+      // Sort according to saved order, putting new players at the end
+      const orderedPlayers = [...players];
+      orderedPlayers.sort((a, b) => {
+        const aIndex = savedOrder.indexOf(a.id);
+        const bIndex = savedOrder.indexOf(b.id);
+        if (aIndex === -1 && bIndex === -1) {
+          // Both players are new, maintain natural sort
+          const tierOrder = ["HT1", "MIDT1", "LT1", "HT2", "MIDT2", "LT2", "HT3", "MIDT3", "LT3", "HT4", "MIDT4", "LT4", "HT5", "MIDT5", "LT5", "NR"];
+          const aTier = getTierForGameMode(a, selectedGameMode);
+          const bTier = getTierForGameMode(b, selectedGameMode);
+          return tierOrder.indexOf(aTier) - tierOrder.indexOf(bTier);
+        }
+        if (aIndex === -1) return 1; // New players go to end
+        if (bIndex === -1) return -1;
+        return aIndex - bIndex;
+      });
+      return orderedPlayers;
+    }
+    
+    return players;
   };
 
   const handlePlayerEdit = (player: Player, gameMode?: GameMode) => {
@@ -869,30 +932,6 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
     }
   };
 
-  const getOrderedPlayersForTier = (tierKey: string) => {
-    const basePlayers = getPlayersForTier(tierKey);
-    const customOrder = playerOrders[tierKey];
-    
-    if (!customOrder) {
-      return basePlayers;
-    }
-    
-    // Sort players based on custom order, fallback to original order for new players
-    const orderedPlayers = [];
-    const remaining = [...basePlayers];
-    
-    for (const playerId of customOrder) {
-      const playerIndex = remaining.findIndex(p => p.id === playerId);
-      if (playerIndex >= 0) {
-        orderedPlayers.push(remaining.splice(playerIndex, 1)[0]);
-      }
-    }
-    
-    // Add any remaining players that weren't in the custom order
-    orderedPlayers.push(...remaining);
-    
-    return orderedPlayers;
-  };
 
 
 
