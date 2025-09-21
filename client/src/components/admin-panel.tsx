@@ -1173,84 +1173,28 @@ export function AdminPanel({ onClose, onAdminLogin, editingPlayer: initialEditin
                 </Card>
               </TabsContent>
               
-              {/* Individual Gamemode Tier Lists */}
+              {/* Other game mode tabs now just show basic info */}
               {(gameModes as readonly any[]).filter((mode: any) => mode.key !== 'overall').map((gameMode: any) => (
                 <TabsContent key={gameMode.key} value={gameMode.key} className="space-y-6">
-                  {/* Vertical Tier List */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                    {tierLevels.map((tierLevel) => {
-                      const tieredPlayers = getOrderedPlayersForTier(tierLevel.key);
-                      return (
-                        <Card 
-                          key={tierLevel.key} 
-                          className="min-h-[400px] bg-card/30 backdrop-blur-sm border-border/50"
-                          data-testid={`admin-tier-section-${tierLevel.key}`}
+                  <Card className="bg-card/30 backdrop-blur-sm border-border/50">
+                    <CardContent className="p-6">
+                      <div className="text-center py-8">
+                        <h3 className="text-lg font-semibold mb-2">{gameMode.name} Administration</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Use the main tier list view to see and manage {gameMode.name} players. 
+                          Admin functions are available through the player cards in the main view.
+                        </p>
+                        <Button 
+                          onClick={() => setShowAddDialog(true)}
+                          className="mr-2"
+                          data-testid="admin-add-player-button"
                         >
-                          <CardHeader className="pb-3">
-                            <div className={`text-center py-3 px-4 rounded-lg bg-gradient-to-r ${tierLevel.color}`}>
-                              <h3 className={`font-bold text-lg ${tierLevel.textColor} tier-title`}>
-                                {tierLevel.key}
-                              </h3>
-                              <p className={`text-sm ${tierLevel.textColor} opacity-90`}>
-                                {tierLevel.name}
-                              </p>
-                              <p className={`text-xs ${tierLevel.textColor} opacity-75 mt-1`}>
-                                Players: {tieredPlayers.length}
-                              </p>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            {tieredPlayers.length > 0 ? (
-                              tieredPlayers.map((player, index) => (
-                                <div key={player.id} className="group relative">
-                                  <PlayerCard
-                                    player={player}
-                                    ranking={index + 1}
-                                    isAdmin={true}
-                                    simplified={true}
-                                    isReorderMode={isReorderMode}
-                                    onMoveUp={(playerId: string) => movePlayerUp(playerId, tierLevel.key)}
-                                    onMoveDown={(playerId: string) => movePlayerDown(playerId, tierLevel.key)}
-                                    canMoveUp={index > 0}
-                                    canMoveDown={index < tieredPlayers.length - 1}
-                                    onEdit={(player) => {
-                                      if (!isReorderMode) {
-                                        handlePlayerEdit(player, selectedGameMode);
-                                      }
-                                    }}
-                                    onDelete={(id) => {
-                                      if (!isReorderMode) {
-                                        const player = tieredPlayers.find(p => p.id === id);
-                                        if (player) handlePlayerDelete(player, selectedGameMode);
-                                      }
-                                    }}
-                                  />
-                                  {!isReorderMode && (
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 w-6 h-6 p-0"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handlePlayerDelete(player, selectedGameMode);
-                                      }}
-                                      data-testid={`admin-delete-gamemode-player-${player.id}`}
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </Button>
-                                  )}
-                                </div>
-                              ))
-                            ) : (
-                              <div className="text-center py-8 text-muted-foreground">
-                                <p className="text-sm">No players in this tier</p>
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Player to {gameMode.name}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               ))}
             </Tabs>
