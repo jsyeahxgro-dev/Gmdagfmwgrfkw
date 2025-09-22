@@ -338,7 +338,25 @@ export class DatabaseStorage implements IStorage {
 
   // Legacy methods (deprecated)
   async getTierOrderLegacy(tierKey: string): Promise<string[]> {
-    return this.tierOrders.get(tierKey) || [];
+    // Check memory cache first
+    if (this.tierOrders.has(tierKey)) {
+      return this.tierOrders.get(tierKey) || [];
+    }
+
+    // Load from database
+    try {
+      const result = await db.select().from(tierOrders).where(eq(tierOrders.tierKey, tierKey));
+      
+      if (result.length > 0) {
+        const orders = result[0].playerOrders as string[];
+        this.tierOrders.set(tierKey, orders);
+        return orders;
+      }
+    } catch (error) {
+      console.log('Error loading tier orders:', error);
+    }
+
+    return [];
   }
 
   async setTierOrderLegacy(tierKey: string, playerOrders: string[]): Promise<boolean> {
@@ -347,9 +365,23 @@ export class DatabaseStorage implements IStorage {
     if (!isValid) {
       throw new Error("Invalid player orders for tier");
     }
-    
-    this.tierOrders.set(tierKey, playerOrders);
-    return true;
+
+    try {
+      // Save to database
+      await db.insert(tierOrders)
+        .values({ tierKey, playerOrders: playerOrders, version: 0 })
+        .onConflictDoUpdate({
+          target: tierOrders.tierKey,
+          set: { playerOrders: playerOrders }
+        });
+
+      // Update memory cache
+      this.tierOrders.set(tierKey, playerOrders);
+      return true;
+    } catch (error) {
+      console.log('Error saving tier orders:', error);
+      throw new Error("Failed to save tier order");
+    }
   }
 
   async validatePlayerOrders(tierKey: string, playerOrders: string[]): Promise<boolean> {
@@ -358,38 +390,60 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
 
-    // Map tier keys to their tier values  
+    // Extract game mode and tier name from full tierKey format (e.g., "skywars-S Tier" -> gameMode: "skywars", tierName: "S Tier")
+    const parts = tierKey.split('-');
+    if (parts.length !== 2) {
+      return false; // Invalid tierKey format
+    }
+    
+    const gameMode = parts[0];
+    const tierName = parts[1];
+
+    // Map tier keys to their tier values
     const tierMapping: Record<string, string[]> = {
       'S Tier': ['HT1', 'MIDT1', 'LT1'],
-      'A Tier': ['HT2', 'MIDT2', 'LT2'], 
-      'B Tier': ['HT3', 'MIDT3', 'LT3'],
+      'A Tier': ['HT2', 'MIDT2', 'LT2'],
+      'B Tier': ['HT3', 'MIDT3', 'LT3'], 
       'C Tier': ['HT4', 'MIDT4', 'LT4'],
       'D Tier': ['HT5', 'MIDT5', 'LT5']
     };
 
-    const allowedTiers = tierMapping[tierKey];
+    const allowedTiers = tierMapping[tierName];
     if (!allowedTiers) {
       return false;
     }
 
-    // Validate all player IDs exist and belong to the correct tier
-    for (const playerId of playerOrders) {
-      const result = await db.select().from(players).where(eq(players.id, playerId));
-      if (result.length === 0) {
-        return false;
+    // Validate all player IDs exist in database and belong to correct tier for the specific game mode
+    try {
+      for (const playerId of playerOrders) {
+        const result = await db.select().from(players).where(eq(players.id, playerId));
+        if (result.length === 0) {
+          return false;
+        }
+        
+        const player = result[0];
+        
+        // Get the specific tier for this game mode
+        let playerTierValue: string;
+        switch (gameMode) {
+          case 'skywars': playerTierValue = player.skywarsTier; break;
+          case 'midfight': playerTierValue = player.midfightTier; break;
+          case 'uhc': playerTierValue = player.uhcTier; break;
+          case 'nodebuff': playerTierValue = player.nodebuffTier; break;
+          case 'bedfight': playerTierValue = player.bedfightTier; break;
+          default: return false;
+        }
+        
+        // Check if player's tier for this specific game mode matches the allowed tiers
+        if (!allowedTiers.includes(playerTierValue)) {
+          return false;
+        }
       }
-      const player = result[0];
-      
-      // Check if player has any tier that matches the tier key
-      const playerTiers = [player.skywarsTier, player.midfightTier, player.uhcTier, player.nodebuffTier, player.bedfightTier];
-      const hasMatchingTier = playerTiers.some(tier => allowedTiers.includes(tier));
-      
-      if (!hasMatchingTier) {
-        return false;
-      }
+      return true;
+    } catch (error) {
+      console.log('Error validating player orders:', error);
+      return false;
     }
-
-    return true;
   }
 }
 
