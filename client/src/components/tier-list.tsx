@@ -112,7 +112,9 @@ export function TierList({ players, isLoading }: TierListProps) {
   const [selectedGameMode, setSelectedGameMode] = useState<GameMode>("overall");
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
-    return !!localStorage.getItem('adminToken');
+    // Clear session on page refresh to force re-authentication
+    sessionStorage.removeItem('adminToken');
+    return false;
   });
   
   // Admin dialog states
@@ -199,7 +201,7 @@ export function TierList({ players, isLoading }: TierListProps) {
       return response.json();
     },
     onSuccess: (data) => {
-      localStorage.setItem('adminToken', data.token);
+      sessionStorage.setItem('adminToken', data.token);
       setIsAdminAuthenticated(true);
       setIsAdminMode(true);
       setShowAdminAuth(false);
@@ -220,7 +222,7 @@ export function TierList({ players, isLoading }: TierListProps) {
   
   // Admin logout
   const handleAdminLogout = () => {
-    localStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminToken');
     setIsAdminAuthenticated(false);
     setIsAdminMode(false);
     toast({

@@ -19,7 +19,7 @@ export async function apiRequest(
   }
   
   // Include admin token if available
-  const adminToken = localStorage.getItem('adminToken');
+  const adminToken = sessionStorage.getItem('adminToken');
   if (adminToken) {
     headers["Authorization"] = `Bearer ${adminToken}`;
   }
@@ -33,7 +33,7 @@ export async function apiRequest(
 
   // If unauthorized, remove the token and throw error
   if (res.status === 401) {
-    localStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminToken');
     throw new Error(`${res.status}: Authentication required`);
   }
 
