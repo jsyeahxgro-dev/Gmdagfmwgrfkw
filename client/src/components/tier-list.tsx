@@ -483,7 +483,8 @@ export function TierList({ players, isLoading }: TierListProps) {
       return response.json();
     },
     onSuccess: () => {
-      // Invalidate tier orders cache to keep it fresh
+      // Invalidate both players and tier orders cache to keep it fresh
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       queryClient.invalidateQueries({ queryKey: ["/api/players/tier-orders", selectedGameMode] });
       toast({
         title: "Order updated",
