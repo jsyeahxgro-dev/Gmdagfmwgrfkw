@@ -24,10 +24,26 @@ function generateSessionToken(): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Get all players
+  // Simple cache for frequently accessed data
+let playersCache: any[] | null = null;
+let playersCacheTime = 0;
+const CACHE_DURATION = 30000; // 30 seconds cache
+
+// Get all players with caching
   app.get("/api/players", async (req, res) => {
     try {
+      // Check cache first
+      const now = Date.now();
+      if (playersCache && (now - playersCacheTime) < CACHE_DURATION) {
+        res.json(playersCache);
+        return;
+      }
+
+      // Cache miss or expired - fetch from database
       const players = await storage.getAllPlayers();
+      playersCache = players;
+      playersCacheTime = now;
+      
       res.json(players);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch players" });
