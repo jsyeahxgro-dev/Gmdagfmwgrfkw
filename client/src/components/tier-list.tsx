@@ -577,12 +577,23 @@ export function TierList({ players, isLoading }: TierListProps) {
     enabled: selectedGameMode !== 'overall',
   });
 
-  // Update local state when tier orders data changes
+  // Clear local state when game mode changes to ensure fresh data loading
   useEffect(() => {
-    if (tierOrdersData) {
-      setPlayerOrders(tierOrdersData);
+    setPlayerOrders({});
+  }, [selectedGameMode]);
+
+  // Update local state when tier orders data changes, but only on initial load or game mode change
+  // Don't overwrite local state if we have pending mutations or recent local changes
+  useEffect(() => {
+    if (tierOrdersData && !reorderPlayersMutation.isPending) {
+      // Only update if this is initial load (empty playerOrders) or we don't have local data for this game mode
+      const hasLocalDataForCurrentMode = Object.keys(playerOrders).some(key => key.startsWith(`${selectedGameMode}-`));
+      
+      if (!hasLocalDataForCurrentMode || Object.keys(playerOrders).length === 0) {
+        setPlayerOrders(tierOrdersData);
+      }
     }
-  }, [tierOrdersData]);
+  }, [tierOrdersData, reorderPlayersMutation.isPending]);
 
   // Helper function to get tier type (High, Mid, Low)
   const getTierType = (tier: string): 'High' | 'Mid' | 'Low' | 'NR' => {
