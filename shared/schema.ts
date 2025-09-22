@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, boolean, integer, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -11,6 +11,12 @@ export const players = pgTable("players", {
   uhcTier: text("uhc_tier").notNull().default("NR"),
   nodebuffTier: text("nodebuff_tier").notNull().default("NR"),
   bedfightTier: text("bedfight_tier").notNull().default("NR"),
+});
+
+export const tierOrders = pgTable("tier_orders", {
+  tierKey: varchar("tier_key").primaryKey(),
+  playerOrders: jsonb("player_orders").notNull().default('[]'),
+  version: integer("version").notNull().default(0),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).omit({
