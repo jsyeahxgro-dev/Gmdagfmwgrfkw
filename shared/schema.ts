@@ -116,31 +116,50 @@ export const getTierDisplayName = (tier: string): string => {
   return tierDisplayNames[tier] || tier;
 };
 
-// Reorder schema validation
-const gameModesForReorder = ['skywars', 'midfight', 'uhc', 'nodebuff', 'bedfight'] as const;
-const tierKeysForReorder = ['S Tier', 'A Tier', 'B Tier', 'C Tier', 'D Tier'] as const;
+// Normalized reorder system
+export const gameModesForReorder = ['skywars', 'midfight', 'uhc', 'nodebuff', 'bedfight'] as const;
+export const tierLetters = ['S', 'A', 'B', 'C', 'D'] as const;
 
-export const reorderSchema = z.object({
-  tierKey: z.string().refine((value) => {
-    // Accept full format like "skywars-S Tier" or just "S Tier"
-    const parts = value.split('-');
-    if (parts.length === 1) {
-      // Plain tier name like "S Tier"
-      return tierKeysForReorder.includes(parts[0] as any);
-    } else if (parts.length === 2) {
-      // Game mode + tier like "skywars-S Tier"
-      const [gameMode, tierName] = parts;
-      return gameModesForReorder.includes(gameMode as any) && 
-             tierKeysForReorder.includes(tierName as any);
-    }
-    return false;
-  }, {
-    message: "Invalid tier key format. Expected format: 'gamemode-tier' or just 'tier'"
-  }),
+export type GameModeForReorder = typeof gameModesForReorder[number];
+export type TierLetter = typeof tierLetters[number];
+
+// Create canonical tier key from game mode and tier letter
+export const createTierKey = (gameMode: GameModeForReorder, tier: TierLetter): string => 
+  `${gameMode}:${tier}`;
+
+// Parse tier key back to components
+export const parseTierKey = (tierKey: string): { gameMode: GameModeForReorder; tier: TierLetter } | null => {
+  const [gameMode, tier] = tierKey.split(':');
+  if (gameModesForReorder.includes(gameMode as any) && tierLetters.includes(tier as any)) {
+    return { gameMode: gameMode as GameModeForReorder, tier: tier as TierLetter };
+  }
+  return null;
+};
+
+export const reorderPayloadSchema = z.object({
+  gameMode: z.enum(gameModesForReorder),
+  tier: z.enum(tierLetters),
+  playerIds: z.array(z.string().uuid()).min(1),
+  version: z.number().int().nonnegative().optional(),
+});
+
+export const reorderResponseSchema = z.object({
+  gameMode: z.enum(gameModesForReorder),
+  tier: z.enum(tierLetters),
+  playerIds: z.array(z.string().uuid()),
+  version: z.number().int().nonnegative(),
+});
+
+export type ReorderPayload = z.infer<typeof reorderPayloadSchema>;
+export type ReorderResponse = z.infer<typeof reorderResponseSchema>;
+
+// Legacy schema (will be deprecated)
+export const legacyReorderSchema = z.object({
+  tierKey: z.string(),
   playerOrders: z.array(z.string().uuid()).min(1),
 });
 
-export type ReorderData = z.infer<typeof reorderSchema>;
+export type LegacyReorderData = z.infer<typeof legacyReorderSchema>;
 
 export const adminAuthSchema = z.object({
   password: z.string().min(1, "Password is required"),
