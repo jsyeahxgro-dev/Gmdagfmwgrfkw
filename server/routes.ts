@@ -24,25 +24,69 @@ function generateSessionToken(): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Simple cache for frequently accessed data
-let playersCache: any[] | null = null;
-let playersCacheTime = 0;
-const CACHE_DURATION = 30000; // 30 seconds cache
+  // Comprehensive cache system
+  interface CacheEntry {
+    data: any;
+    timestamp: number;
+  }
+  
+  const cache = new Map<string, CacheEntry>();
+  const CACHE_DURATION = 30000; // 30 seconds cache
+  
+  // Cache utility functions
+  function getCacheKey(endpoint: string, params?: string): string {
+    return params ? `${endpoint}:${params}` : endpoint;
+  }
+  
+  function getCachedData(key: string): any | null {
+    const entry = cache.get(key);
+    if (!entry) return null;
+    
+    const now = Date.now();
+    if (now - entry.timestamp > CACHE_DURATION) {
+      cache.delete(key);
+      return null;
+    }
+    
+    return entry.data;
+  }
+  
+  function setCachedData(key: string, data: any): void {
+    cache.set(key, {
+      data: data,
+      timestamp: Date.now()
+    });
+  }
+  
+  function invalidateCache(pattern?: string): void {
+    if (!pattern) {
+      // Clear all cache
+      cache.clear();
+      return;
+    }
+    
+    // Clear cache entries matching pattern
+    for (const key of cache.keys()) {
+      if (key.startsWith(pattern)) {
+        cache.delete(key);
+      }
+    }
+  }
 
-// Get all players with caching
+  // Get all players with caching
   app.get("/api/players", async (req, res) => {
     try {
-      // Check cache first
-      const now = Date.now();
-      if (playersCache && (now - playersCacheTime) < CACHE_DURATION) {
-        res.json(playersCache);
+      const cacheKey = getCacheKey("/api/players");
+      const cachedData = getCachedData(cacheKey);
+      
+      if (cachedData) {
+        res.json(cachedData);
         return;
       }
 
       // Cache miss or expired - fetch from database
       const players = await storage.getAllPlayers();
-      playersCache = players;
-      playersCacheTime = now;
+      setCachedData(cacheKey, players);
       
       res.json(players);
     } catch (error) {
@@ -50,13 +94,23 @@ const CACHE_DURATION = 30000; // 30 seconds cache
     }
   });
 
-  // Get player by ID
+  // Get player by ID with caching
   app.get("/api/players/:id", async (req, res) => {
     try {
+      const cacheKey = getCacheKey("/api/players", req.params.id);
+      const cachedData = getCachedData(cacheKey);
+      
+      if (cachedData) {
+        res.json(cachedData);
+        return;
+      }
+
       const player = await storage.getPlayer(req.params.id);
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
+      
+      setCachedData(cacheKey, player);
       res.json(player);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch player" });
@@ -94,10 +148,18 @@ const CACHE_DURATION = 30000; // 30 seconds cache
         }
         
         const updatedPlayer = await storage.updatePlayer(existingPlayer.id, updateData);
+        
+        // Invalidate relevant cache entries
+        invalidateCache("/api/players");
+        
         return res.status(200).json(updatedPlayer);
       }
 
       const player = await storage.createPlayer(validatedData);
+      
+      // Invalidate relevant cache entries
+      invalidateCache("/api/players");
+      
       res.status(201).json(player);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -112,6 +174,10 @@ const CACHE_DURATION = 30000; // 30 seconds cache
     try {
       const updateData = insertPlayerSchema.partial().parse(req.body);
       const player = await storage.updatePlayer(req.params.id, updateData);
+      
+      // Invalidate relevant cache entries
+      invalidateCache("/api/players");
+      
       res.json(player);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -131,6 +197,10 @@ const CACHE_DURATION = 30000; // 30 seconds cache
       if (!success) {
         return res.status(404).json({ error: "Player not found" });
       }
+      
+      // Invalidate relevant cache entries
+      invalidateCache("/api/players");
+      
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete player" });
@@ -156,6 +226,10 @@ const CACHE_DURATION = 30000; // 30 seconds cache
       (updateData as any)[gameModeField] = tier;
 
       const updatedPlayer = await storage.updatePlayer(req.params.id, updateData);
+      
+      // Invalidate relevant cache entries
+      invalidateCache("/api/players");
+      
       res.json(updatedPlayer);
     } catch (error) {
       res.status(500).json({ error: "Failed to update player tier" });
@@ -171,6 +245,9 @@ const CACHE_DURATION = 30000; // 30 seconds cache
       // Save the tier order using storage (legacy method)
       await storage.setTierOrderLegacy(tierKey, playerOrders);
       
+      // Invalidate relevant cache entries
+      invalidateCache("/api/players/tier-order");
+      
       res.json({ success: true, tierKey, playerOrders });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -183,12 +260,22 @@ const CACHE_DURATION = 30000; // 30 seconds cache
     }
   });
 
-  // Get tier order
+  // Get tier order with caching
   app.get("/api/players/tier-order/:tierKey", async (req, res) => {
     try {
       const { tierKey } = req.params;
+      const cacheKey = getCacheKey("/api/players/tier-order", tierKey);
+      const cachedData = getCachedData(cacheKey);
+      
+      if (cachedData) {
+        res.json(cachedData);
+        return;
+      }
+
       const playerOrders = await storage.getTierOrderLegacy(tierKey);
-      res.json({ tierKey, playerOrders });
+      const responseData = { tierKey, playerOrders };
+      setCachedData(cacheKey, responseData);
+      res.json(responseData);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch tier order" });
     }
