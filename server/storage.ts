@@ -1,7 +1,7 @@
 import { type Player, type InsertPlayer, players, type GameModeForReorder, type TierLetter, type ReorderResponse } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
-import { db } from "./db";
+// import { db } from "./db"; // Temporarily commented out
 
 export interface IStorage {
   getPlayer(id: string): Promise<Player | undefined>;
@@ -404,52 +404,8 @@ export class MemStorage implements IStorage {
   }
 }
 
-export class DbStorage implements IStorage {
-  private tierOrders: Map<string, string[]>;
-  private tierVersions: Map<string, number>;
-  private tierMutexes: Map<string, Promise<any>>;
-
-  constructor() {
-    this.tierOrders = new Map();
-    this.tierVersions = new Map();
-    this.tierMutexes = new Map();
-    this.createTableIfNotExists().then(() => {
-      this.initializeData();
-    });
-  }
-
-  private async createTableIfNotExists() {
-    try {
-      // Try to create tables if they don't exist
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS players (
-          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-          name TEXT NOT NULL,
-          skywars_tier TEXT NOT NULL DEFAULT 'NR',
-          midfight_tier TEXT NOT NULL DEFAULT 'NR',
-          uhc_tier TEXT NOT NULL DEFAULT 'NR',
-          nodebuff_tier TEXT NOT NULL DEFAULT 'NR',
-          bedfight_tier TEXT NOT NULL DEFAULT 'NR'
-        )
-      `);
-      
-      // Create tier_orders table for storing custom player orders
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS tier_orders (
-          tier_key VARCHAR PRIMARY KEY,
-          player_orders TEXT NOT NULL DEFAULT '[]'
-        )
-      `);
-      
-      console.log('Tables created or already exist');
-    } catch (error) {
-      console.log('Table creation error (probably already exists):', error);
-    }
-  }
-
-  private async initializeData() {
-    // Check if players already exist in the database
-    const existingPlayers = await db.select().from(players);
+// DbStorage temporarily removed to avoid db import issues
+/*
     if (existingPlayers.length > 0) {
       return; // Data already exists, no need to seed
     }
@@ -900,5 +856,6 @@ export class DbStorage implements IStorage {
     }
   }
 }
+*/
 
-export const storage = new DbStorage();
+export const storage = new MemStorage();
