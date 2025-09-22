@@ -551,7 +551,7 @@ export function TierList({ players, isLoading }: TierListProps) {
   const [playerOrders, setPlayerOrders] = useState<Record<string, string[]>>({});
 
   // Fetch saved tier orders for the current game mode
-  const { data: tierOrdersData } = useQuery({
+  const { data: tierOrdersData, isLoading: isLoadingTierOrders } = useQuery({
     queryKey: ["/api/players/tier-orders", selectedGameMode],
     queryFn: async () => {
       if (selectedGameMode === 'overall') return {};
@@ -813,7 +813,8 @@ export function TierList({ players, isLoading }: TierListProps) {
 
   // Removed drag handlers - using only up/down arrow buttons for reordering
 
-  if (isLoading) {
+  // Show loading state until both players and tier orders are ready (for non-overall modes)
+  if (isLoading || (selectedGameMode !== 'overall' && isLoadingTierOrders)) {
     return (
       <div className="space-y-6">
         <div className="h-20 bg-muted animate-pulse rounded-lg" />
