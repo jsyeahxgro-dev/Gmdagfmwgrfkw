@@ -402,11 +402,51 @@ export function TierList({ players, isLoading }: TierListProps) {
     );
     
     try {
+      // First update the player's tier
       await updatePlayerTierMutation.mutateAsync({
         playerId: pendingMove.playerId,
         gameMode: selectedGameMode,
         tier: newTier,
       });
+
+      // After successful tier update, update the tier order for proper positioning
+      const orderKey = `${selectedGameMode}-${pendingMove.tierKey}`;
+      const currentTierPlayers = getOrderedPlayersForTier(pendingMove.tierKey);
+      
+      // Find the boundary position where the player should be positioned in the new tier ordering
+      const movedPlayerIndex = currentTierPlayers.findIndex(p => p.id === pendingMove.playerId);
+      if (movedPlayerIndex !== -1) {
+        // Find the boundary neighbor (player at the edge they're crossing to)
+        let boundaryNeighborIndex = -1;
+        if (pendingMove.direction === 'up') {
+          // Moving up - find the last player in the higher tier type that will be in same tier level
+          boundaryNeighborIndex = Math.max(0, movedPlayerIndex - 1);
+        } else {
+          // Moving down - find the first player in the lower tier type that will be in same tier level  
+          boundaryNeighborIndex = Math.min(currentTierPlayers.length - 1, movedPlayerIndex + 1);
+        }
+
+        if (boundaryNeighborIndex >= 0 && boundaryNeighborIndex < currentTierPlayers.length) {
+          // Swap the moved player with boundary neighbor in the order
+          const newOrder = [...currentTierPlayers];
+          [newOrder[movedPlayerIndex], newOrder[boundaryNeighborIndex]] = 
+            [newOrder[boundaryNeighborIndex], newOrder[movedPlayerIndex]];
+          
+          const newPlayerIds = newOrder.map(p => p.id);
+          
+          // Update local state
+          setPlayerOrders(prev => ({
+            ...prev,
+            [orderKey]: newPlayerIds
+          }));
+          
+          // Persist the order change to the server
+          await reorderPlayersMutation.mutateAsync({
+            tierKey: orderKey,
+            playerOrders: newPlayerIds
+          });
+        }
+      }
       
       setShowTierChangeDialog(false);
       setPendingMove(null);
@@ -422,6 +462,7 @@ export function TierList({ players, isLoading }: TierListProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/players/tier-orders", selectedGameMode] });
       toast({
         title: "Player moved",
         description: "Player tier has been updated",
@@ -1007,8 +1048,24 @@ export function TierList({ players, isLoading }: TierListProps) {
                           isReorderMode={isReorderMode}
                           onMoveUp={(playerId: string) => movePlayerUp(playerId, tierLevel.key)}
                           onMoveDown={(playerId: string) => movePlayerDown(playerId, tierLevel.key)}
-                          canMoveUp={index > 0}
-                          canMoveDown={index < playersInTier.length - 1}
+                          canMoveUp={(() => {
+                            // Always allow move up if not at top of tier OR if can cross tier boundary
+                            if (index > 0) return true;
+                            
+                            // At top of tier - check if can move to higher tier type
+                            const currentTier = getTierForGameMode(player, selectedGameMode);
+                            const currentTierType = getTierType(currentTier);
+                            return currentTierType === 'Low' || currentTierType === 'Mid';
+                          })()}
+                          canMoveDown={(() => {
+                            // Always allow move down if not at bottom of tier OR if can cross tier boundary
+                            if (index < playersInTier.length - 1) return true;
+                            
+                            // At bottom of tier - check if can move to lower tier type
+                            const currentTier = getTierForGameMode(player, selectedGameMode);
+                            const currentTierType = getTierType(currentTier);
+                            return currentTierType === 'High' || currentTierType === 'Mid';
+                          })()}
                           onEdit={openEditDialog}
                           onDelete={(id) => {
                             if (!isReorderMode) {
