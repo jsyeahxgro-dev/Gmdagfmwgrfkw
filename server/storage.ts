@@ -1,4 +1,4 @@
-import { type Player, type InsertPlayer, players } from "@shared/schema";
+import { type Player, type InsertPlayer, players, type GameModeForReorder, type TierLetter, type ReorderResponse } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
@@ -10,18 +10,29 @@ export interface IStorage {
   createPlayer(player: InsertPlayer): Promise<Player>;
   updatePlayer(id: string, player: Partial<InsertPlayer>): Promise<Player>;
   deletePlayer(id: string): Promise<boolean>;
-  getTierOrder(tierKey: string): Promise<string[]>;
-  setTierOrder(tierKey: string, playerOrders: string[]): Promise<boolean>;
+  
+  // New versioned tier order methods
+  getTierOrder(gameMode: GameModeForReorder, tier: TierLetter): Promise<ReorderResponse>;
+  setTierOrder(gameMode: GameModeForReorder, tier: TierLetter, playerIds: string[], expectedVersion?: number): Promise<ReorderResponse>;
+  validateTierOrder(gameMode: GameModeForReorder, tier: TierLetter, playerIds: string[]): Promise<boolean>;
+  
+  // Legacy methods (will be deprecated)
+  getTierOrderLegacy(tierKey: string): Promise<string[]>;
+  setTierOrderLegacy(tierKey: string, playerOrders: string[]): Promise<boolean>;
   validatePlayerOrders(tierKey: string, playerOrders: string[]): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private players: Map<string, Player>;
   private tierOrders: Map<string, string[]>;
+  private tierVersions: Map<string, number>;
+  private tierMutexes: Map<string, Promise<any>>;
 
   constructor() {
     this.players = new Map();
     this.tierOrders = new Map();
+    this.tierVersions = new Map();
+    this.tierMutexes = new Map();
     this.seedInitialData();
   }
 
@@ -221,11 +232,128 @@ export class MemStorage implements IStorage {
     return deleted;
   }
 
-  async getTierOrder(tierKey: string): Promise<string[]> {
+  // New versioned tier order methods
+  private createTierKey(gameMode: GameModeForReorder, tier: TierLetter): string {
+    return `${gameMode}:${tier}`;
+  }
+
+  private async withMutex<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    // Wait for any existing operation on this key to complete
+    const existingMutex = this.tierMutexes.get(key);
+    if (existingMutex) {
+      await existingMutex;
+    }
+
+    // Create new mutex for this operation
+    const mutex = fn();
+    this.tierMutexes.set(key, mutex);
+    
+    try {
+      const result = await mutex;
+      return result;
+    } finally {
+      // Clean up the mutex
+      this.tierMutexes.delete(key);
+    }
+  }
+
+  async getTierOrder(gameMode: GameModeForReorder, tier: TierLetter): Promise<ReorderResponse> {
+    const key = this.createTierKey(gameMode, tier);
+    const playerIds = this.tierOrders.get(key) || [];
+    const version = this.tierVersions.get(key) || 0;
+    
+    return {
+      gameMode,
+      tier,
+      playerIds,
+      version
+    };
+  }
+
+  async setTierOrder(gameMode: GameModeForReorder, tier: TierLetter, playerIds: string[], expectedVersion?: number): Promise<ReorderResponse> {
+    const key = this.createTierKey(gameMode, tier);
+    
+    return this.withMutex(key, async () => {
+      const currentVersion = this.tierVersions.get(key) || 0;
+      
+      // Check version conflict
+      if (expectedVersion !== undefined && expectedVersion < currentVersion) {
+        throw new Error(`Version conflict: expected ${expectedVersion}, current ${currentVersion}`);
+      }
+      
+      // Validate the order
+      const isValid = await this.validateTierOrder(gameMode, tier, playerIds);
+      if (!isValid) {
+        throw new Error("Invalid player order for tier");
+      }
+      
+      // Update order and increment version
+      const newVersion = currentVersion + 1;
+      this.tierOrders.set(key, playerIds);
+      this.tierVersions.set(key, newVersion);
+      
+      return {
+        gameMode,
+        tier,
+        playerIds,
+        version: newVersion
+      };
+    });
+  }
+
+  async validateTierOrder(gameMode: GameModeForReorder, tier: TierLetter, playerIds: string[]): Promise<boolean> {
+    // Check for duplicates
+    if (new Set(playerIds).size !== playerIds.length) {
+      return false;
+    }
+
+    // Map tier letters to their tier values
+    const tierMapping: Record<TierLetter, string[]> = {
+      'S': ['HT1', 'MIDT1', 'LT1'],
+      'A': ['HT2', 'MIDT2', 'LT2'],
+      'B': ['HT3', 'MIDT3', 'LT3'],
+      'C': ['HT4', 'MIDT4', 'LT4'],
+      'D': ['HT5', 'MIDT5', 'LT5']
+    };
+
+    const allowedTiers = tierMapping[tier];
+    if (!allowedTiers) {
+      return false;
+    }
+
+    // Validate all player IDs exist and belong to the correct tier
+    for (const playerId of playerIds) {
+      const player = this.players.get(playerId);
+      if (!player) {
+        return false;
+      }
+      
+      // Get the specific tier for this game mode
+      let playerTierValue: string;
+      switch (gameMode) {
+        case 'skywars': playerTierValue = player.skywarsTier; break;
+        case 'midfight': playerTierValue = player.midfightTier; break;
+        case 'uhc': playerTierValue = player.uhcTier; break;
+        case 'nodebuff': playerTierValue = player.nodebuffTier; break;
+        case 'bedfight': playerTierValue = player.bedfightTier; break;
+        default: return false;
+      }
+      
+      // Check if player's tier for this game mode matches the allowed tiers
+      if (!allowedTiers.includes(playerTierValue)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  // Legacy methods (deprecated)
+  async getTierOrderLegacy(tierKey: string): Promise<string[]> {
     return this.tierOrders.get(tierKey) || [];
   }
 
-  async setTierOrder(tierKey: string, playerOrders: string[]): Promise<boolean> {
+  async setTierOrderLegacy(tierKey: string, playerOrders: string[]): Promise<boolean> {
     // Validate that all players exist and belong to the specified tier
     const isValid = await this.validatePlayerOrders(tierKey, playerOrders);
     if (!isValid) {
@@ -278,9 +406,13 @@ export class MemStorage implements IStorage {
 
 export class DbStorage implements IStorage {
   private tierOrders: Map<string, string[]>;
+  private tierVersions: Map<string, number>;
+  private tierMutexes: Map<string, Promise<any>>;
 
   constructor() {
     this.tierOrders = new Map();
+    this.tierVersions = new Map();
+    this.tierMutexes = new Map();
     this.createTableIfNotExists().then(() => {
       this.initializeData();
     });
@@ -508,7 +640,172 @@ export class DbStorage implements IStorage {
     return result.length > 0;
   }
 
-  async getTierOrder(tierKey: string): Promise<string[]> {
+  // New versioned tier order methods
+  private createTierKey(gameMode: GameModeForReorder, tier: TierLetter): string {
+    return `${gameMode}:${tier}`;
+  }
+
+  private async withMutex<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    // Wait for any existing operation on this key to complete
+    const existingMutex = this.tierMutexes.get(key);
+    if (existingMutex) {
+      await existingMutex;
+    }
+
+    // Create new mutex for this operation
+    const mutex = fn();
+    this.tierMutexes.set(key, mutex);
+    
+    try {
+      const result = await mutex;
+      return result;
+    } finally {
+      // Clean up the mutex
+      this.tierMutexes.delete(key);
+    }
+  }
+
+  async getTierOrder(gameMode: GameModeForReorder, tier: TierLetter): Promise<ReorderResponse> {
+    const key = this.createTierKey(gameMode, tier);
+    
+    // Check memory cache first
+    if (this.tierOrders.has(key)) {
+      const playerIds = this.tierOrders.get(key) || [];
+      const version = this.tierVersions.get(key) || 0;
+      return { gameMode, tier, playerIds, version };
+    }
+
+    // Load from database
+    try {
+      const result = await db.execute(sql`
+        SELECT player_orders, version FROM tier_orders WHERE tier_key = ${key}
+      `);
+      
+      if (result.rows.length > 0) {
+        const playerIds = JSON.parse(result.rows[0].player_orders as string);
+        const version = Number(result.rows[0].version) || 0;
+        
+        // Update cache
+        this.tierOrders.set(key, playerIds);
+        this.tierVersions.set(key, version);
+        
+        return { gameMode, tier, playerIds, version };
+      }
+    } catch (error) {
+      console.log('Error loading tier orders:', error);
+    }
+
+    // Return empty order with version 0
+    return { gameMode, tier, playerIds: [], version: 0 };
+  }
+
+  async setTierOrder(gameMode: GameModeForReorder, tier: TierLetter, playerIds: string[], expectedVersion?: number): Promise<ReorderResponse> {
+    const key = this.createTierKey(gameMode, tier);
+    
+    return this.withMutex(key, async () => {
+      // Get current version from database
+      let currentVersion = 0;
+      try {
+        const result = await db.execute(sql`
+          SELECT version FROM tier_orders WHERE tier_key = ${key}
+        `);
+        if (result.rows.length > 0) {
+          currentVersion = Number(result.rows[0].version) || 0;
+        }
+      } catch (error) {
+        console.log('Error getting current version:', error);
+      }
+      
+      // Check version conflict
+      if (expectedVersion !== undefined && expectedVersion < currentVersion) {
+        throw new Error(`Version conflict: expected ${expectedVersion}, current ${currentVersion}`);
+      }
+      
+      // Validate the order
+      const isValid = await this.validateTierOrder(gameMode, tier, playerIds);
+      if (!isValid) {
+        throw new Error("Invalid player order for tier");
+      }
+      
+      // Update order and increment version
+      const newVersion = currentVersion + 1;
+      
+      try {
+        // Save to database with new version
+        await db.execute(sql`
+          INSERT INTO tier_orders (tier_key, player_orders, version) 
+          VALUES (${key}, ${JSON.stringify(playerIds)}, ${newVersion})
+          ON CONFLICT (tier_key) 
+          DO UPDATE SET player_orders = EXCLUDED.player_orders, version = EXCLUDED.version
+        `);
+
+        // Update memory cache
+        this.tierOrders.set(key, playerIds);
+        this.tierVersions.set(key, newVersion);
+        
+        return { gameMode, tier, playerIds, version: newVersion };
+      } catch (error) {
+        console.log('Error saving tier orders:', error);
+        throw new Error("Failed to save tier order");
+      }
+    });
+  }
+
+  async validateTierOrder(gameMode: GameModeForReorder, tier: TierLetter, playerIds: string[]): Promise<boolean> {
+    // Check for duplicates
+    if (new Set(playerIds).size !== playerIds.length) {
+      return false;
+    }
+
+    // Map tier letters to their tier values
+    const tierMapping: Record<TierLetter, string[]> = {
+      'S': ['HT1', 'MIDT1', 'LT1'],
+      'A': ['HT2', 'MIDT2', 'LT2'],
+      'B': ['HT3', 'MIDT3', 'LT3'],
+      'C': ['HT4', 'MIDT4', 'LT4'],
+      'D': ['HT5', 'MIDT5', 'LT5']
+    };
+
+    const allowedTiers = tierMapping[tier];
+    if (!allowedTiers) {
+      return false;
+    }
+
+    // Validate all player IDs exist and belong to the correct tier
+    try {
+      for (const playerId of playerIds) {
+        const result = await db.select().from(players).where(eq(players.id, playerId));
+        if (result.length === 0) {
+          return false;
+        }
+        
+        const player = result[0];
+        
+        // Get the specific tier for this game mode
+        let playerTierValue: string;
+        switch (gameMode) {
+          case 'skywars': playerTierValue = player.skywarsTier; break;
+          case 'midfight': playerTierValue = player.midfightTier; break;
+          case 'uhc': playerTierValue = player.uhcTier; break;
+          case 'nodebuff': playerTierValue = player.nodebuffTier; break;
+          case 'bedfight': playerTierValue = player.bedfightTier; break;
+          default: return false;
+        }
+        
+        // Check if player's tier for this game mode matches the allowed tiers
+        if (!allowedTiers.includes(playerTierValue)) {
+          return false;
+        }
+      }
+      return true;
+    } catch (error) {
+      console.log('Error validating tier order:', error);
+      return false;
+    }
+  }
+
+  // Legacy methods (deprecated)
+  async getTierOrderLegacy(tierKey: string): Promise<string[]> {
     // Check memory cache first
     if (this.tierOrders.has(tierKey)) {
       return this.tierOrders.get(tierKey) || [];
@@ -532,7 +829,7 @@ export class DbStorage implements IStorage {
     return [];
   }
 
-  async setTierOrder(tierKey: string, playerOrders: string[]): Promise<boolean> {
+  async setTierOrderLegacy(tierKey: string, playerOrders: string[]): Promise<boolean> {
     // Validate that all players exist
     const isValid = await this.validatePlayerOrders(tierKey, playerOrders);
     if (!isValid) {
