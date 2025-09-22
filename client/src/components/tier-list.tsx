@@ -1,20 +1,25 @@
 import { useState, useEffect } from "react";
 import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, Settings, Edit, Trash2, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
+import { Search, Plus, Settings, Edit, Trash2, ArrowUp, ArrowDown, RotateCcw, Lock, LogOut } from "lucide-react";
 import { PlayerCard } from "./player-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { PlayerProfileModal } from "./player-profile-modal";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import type { Player, GameMode } from "@shared/schema";
-import { gameModes, tierLevels, getTierColor, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Player, GameMode, InsertPlayer } from "@shared/schema";
+import { gameModes, tierLevels, getTierColor, calculatePlayerPoints, getTitleFromPoints, getTierDisplayName, insertPlayerSchema, tierOptions } from "@shared/schema";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { z } from "zod";
 // Removed drag and drop imports - using only buttons for reordering
 
 // Simple Player Card Component - no drag and drop
@@ -97,11 +102,26 @@ interface TierListProps {
   isLoading: boolean;
 }
 
+// Admin authentication schema
+const adminAuthSchema = z.object({
+  password: z.string().min(1, "Password is required"),
+});
+
 export function TierList({ players, isLoading }: TierListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGameMode, setSelectedGameMode] = useState<GameMode>("overall");
   const [isAdminMode, setIsAdminMode] = useState(false);
-  // Removed activePlayer state - no longer needed without drag and drop
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    return !!localStorage.getItem('adminToken');
+  });
+  
+  // Admin dialog states
+  const [showAdminAuth, setShowAdminAuth] = useState(false);
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [showEditPlayer, setShowEditPlayer] = useState(false);
+  const [showOverallEditPlayer, setShowOverallEditPlayer] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
   
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [showTierChangeDialog, setShowTierChangeDialog] = useState(false);
@@ -116,7 +136,53 @@ export function TierList({ players, isLoading }: TierListProps) {
   const [showPlayerProfile, setShowPlayerProfile] = useState(false);
   const [selectedPlayerForProfile, setSelectedPlayerForProfile] = useState<Player | null>(null);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  
+  // Admin authentication form
+  const adminAuthForm = useForm<z.infer<typeof adminAuthSchema>>({
+    resolver: zodResolver(adminAuthSchema),
+    defaultValues: {
+      password: "",
+    },
+  });
+  
+  // Add player form
+  const addPlayerForm = useForm<InsertPlayer>({
+    resolver: zodResolver(insertPlayerSchema),
+    defaultValues: {
+      name: "",
+      skywarsTier: "NR",
+      midfightTier: "NR",
+      uhcTier: "NR",
+      nodebuffTier: "NR",
+      bedfightTier: "NR",
+    },
+  });
+  
+  // Edit player form
+  const editPlayerForm = useForm<InsertPlayer>({
+    resolver: zodResolver(insertPlayerSchema),
+    defaultValues: {
+      name: "",
+      skywarsTier: "NR",
+      midfightTier: "NR",
+      uhcTier: "NR",
+      nodebuffTier: "NR",
+      bedfightTier: "NR",
+    },
+  });
+  
+  // Overall edit form (for editing all tiers at once)
+  const overallEditForm = useForm<InsertPlayer>({
+    resolver: zodResolver(insertPlayerSchema),
+    defaultValues: {
+      name: "",
+      skywarsTier: "NR",
+      midfightTier: "NR",
+      uhcTier: "NR",
+      nodebuffTier: "NR",
+      bedfightTier: "NR",
+    },
+  });
 
   // Handle player profile modal
   const handlePlayerProfileClick = (player: Player) => {
@@ -125,6 +191,94 @@ export function TierList({ players, isLoading }: TierListProps) {
       setShowPlayerProfile(true);
     }
   };
+  
+  // Admin authentication mutation
+  const adminAuthMutation = useMutation({
+    mutationFn: async (password: string) => {
+      const response = await apiRequest("POST", "/api/admin/auth", { password });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      localStorage.setItem('adminToken', data.token);
+      setIsAdminAuthenticated(true);
+      setIsAdminMode(true);
+      setShowAdminAuth(false);
+      adminAuthForm.reset();
+      toast({
+        title: "Admin access granted",
+        description: "You are now in admin mode",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Authentication failed",
+        description: "Invalid admin password",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Admin logout
+  const handleAdminLogout = () => {
+    localStorage.removeItem('adminToken');
+    setIsAdminAuthenticated(false);
+    setIsAdminMode(false);
+    toast({
+      title: "Logged out",
+      description: "Admin session ended",
+    });
+  };
+  
+  // Add player mutation
+  const addPlayerMutation = useMutation({
+    mutationFn: async (data: InsertPlayer) => {
+      const response = await apiRequest("POST", "/api/players", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      setShowAddPlayer(false);
+      addPlayerForm.reset();
+      toast({
+        title: "Player added",
+        description: "Player has been successfully added",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add player",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Edit player mutation
+  const editPlayerMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertPlayer> }) => {
+      const response = await apiRequest("PATCH", `/api/players/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      setShowEditPlayer(false);
+      setShowOverallEditPlayer(false);
+      setEditingPlayer(null);
+      editPlayerForm.reset();
+      overallEditForm.reset();
+      toast({
+        title: "Player updated",
+        description: "Player has been successfully updated",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update player",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Removed drag and drop sensors - using only buttons for reordering
 
@@ -134,6 +288,7 @@ export function TierList({ players, isLoading }: TierListProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      setPlayerToDelete(null);
       toast({
         title: "Player deleted",
         description: "Player has been successfully removed",
@@ -147,6 +302,95 @@ export function TierList({ players, isLoading }: TierListProps) {
       });
     },
   });
+  
+  // Handle admin auth form submit
+  const handleAdminAuth = (data: z.infer<typeof adminAuthSchema>) => {
+    adminAuthMutation.mutate(data.password);
+  };
+  
+  // Handle add player form submit
+  const handleAddPlayer = (data: InsertPlayer) => {
+    // If we're in a specific game mode, set only that tier
+    if (selectedGameMode !== 'overall') {
+      const resetData = {
+        name: data.name,
+        skywarsTier: "NR",
+        midfightTier: "NR",
+        uhcTier: "NR",
+        nodebuffTier: "NR",
+        bedfightTier: "NR",
+      };
+      const tierField = `${selectedGameMode}Tier` as keyof InsertPlayer;
+      resetData[tierField] = data[tierField] || "NR";
+      addPlayerMutation.mutate(resetData);
+    } else {
+      addPlayerMutation.mutate(data);
+    }
+  };
+  
+  // Handle edit player (single game mode)
+  const handleEditPlayer = (data: InsertPlayer) => {
+    if (!editingPlayer) return;
+    
+    if (selectedGameMode !== 'overall') {
+      // Only update the specific game mode tier
+      const updateData: Partial<InsertPlayer> = {
+        name: data.name,
+      };
+      const tierField = `${selectedGameMode}Tier` as keyof InsertPlayer;
+      updateData[tierField] = data[tierField] || "NR";
+      editPlayerMutation.mutate({ id: editingPlayer.id, data: updateData });
+    } else {
+      // Update all fields
+      editPlayerMutation.mutate({ id: editingPlayer.id, data });
+    }
+  };
+  
+  // Handle overall edit (all tiers at once)
+  const handleOverallEditPlayer = (data: InsertPlayer) => {
+    if (!editingPlayer) return;
+    editPlayerMutation.mutate({ id: editingPlayer.id, data });
+  };
+  
+  // Open edit dialog
+  const openEditDialog = (player: Player) => {
+    setEditingPlayer(player);
+    editPlayerForm.reset({
+      name: player.name,
+      skywarsTier: player.skywarsTier,
+      midfightTier: player.midfightTier,
+      uhcTier: player.uhcTier,
+      nodebuffTier: player.nodebuffTier,
+      bedfightTier: player.bedfightTier,
+    });
+    setShowEditPlayer(true);
+  };
+  
+  // Open overall edit dialog
+  const openOverallEditDialog = (player: Player) => {
+    setEditingPlayer(player);
+    overallEditForm.reset({
+      name: player.name,
+      skywarsTier: player.skywarsTier,
+      midfightTier: player.midfightTier,
+      uhcTier: player.uhcTier,
+      nodebuffTier: player.nodebuffTier,
+      bedfightTier: player.bedfightTier,
+    });
+    setShowOverallEditPlayer(true);
+  };
+  
+  // Handle delete
+  const handleDeletePlayer = (player: Player) => {
+    setPlayerToDelete(player);
+  };
+  
+  // Confirm delete
+  const confirmDelete = () => {
+    if (playerToDelete) {
+      deletePlayerMutation.mutate(playerToDelete.id);
+    }
+  };
 
   // Handle tier change confirmation
   const handleTierChangeConfirmation = async () => {
@@ -544,26 +788,44 @@ export function TierList({ players, isLoading }: TierListProps) {
           />
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center sm:justify-end">
-          <Button
-            variant={isAdminMode ? "default" : "outline"}
-            onClick={() => {
-              if (!isAdminMode) {
-                // Admin panel removed - no action
-              } else {
-                setIsAdminMode(false);
-              }
-            }}
-            className="h-10 sm:h-9 px-3 sm:px-4 text-sm"
-            data-testid="toggle-admin-mode"
-          >
-            <Settings className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline ml-2">{isAdminMode ? "Exit Admin" : "Admin Mode"}</span>
-            <span className="sm:hidden">Admin</span>
-          </Button>
+          {!isAdminAuthenticated ? (
+            <Button
+              variant="outline"
+              onClick={() => setShowAdminAuth(true)}
+              className="h-10 sm:h-9 px-3 sm:px-4 text-sm"
+              data-testid="admin-login-button"
+            >
+              <Lock className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline ml-2">Admin Login</span>
+              <span className="sm:hidden">Login</span>
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant={isAdminMode ? "default" : "outline"}
+                onClick={() => setIsAdminMode(!isAdminMode)}
+                className="h-10 sm:h-9 px-3 sm:px-4 text-sm"
+                data-testid="toggle-admin-mode"
+              >
+                <Settings className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline ml-2">{isAdminMode ? "Exit Admin" : "Admin Mode"}</span>
+                <span className="sm:hidden">Admin</span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleAdminLogout}
+                className="h-10 sm:h-9 px-3 sm:px-4 text-sm"
+                data-testid="admin-logout-button"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline ml-2">Logout</span>
+              </Button>
+            </>
+          )}
           {isAdminMode && (
             <div className="flex gap-2">
               <Button
-                onClick={() => {/* Admin panel removed - no action */}}
+                onClick={() => setShowAddPlayer(true)}
                 className="h-10 sm:h-9 px-3 sm:px-4 text-sm"
                 data-testid="add-player-button"
               >
@@ -692,10 +954,21 @@ export function TierList({ players, isLoading }: TierListProps) {
                         <div className="flex gap-2">
                           <Button
                             size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openOverallEditDialog(player);
+                            }}
+                            data-testid={`edit-overall-player-${player.id}`}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
                             variant="destructive"
                             onClick={(e) => {
                               e.stopPropagation();
-                              deletePlayerMutation.mutate(player.id);
+                              handleDeletePlayer(player);
                             }}
                             data-testid={`delete-player-${player.id}`}
                           >
@@ -736,14 +1009,11 @@ export function TierList({ players, isLoading }: TierListProps) {
                           onMoveDown={(playerId: string) => movePlayerDown(playerId, tierLevel.key)}
                           canMoveUp={index > 0}
                           canMoveDown={index < playersInTier.length - 1}
-                          onEdit={(player) => {
-                            if (!isReorderMode) {
-                              // Admin panel removed - editing functionality will be integrated into tier-list
-                            }
-                          }}
+                          onEdit={openEditDialog}
                           onDelete={(id) => {
                             if (!isReorderMode) {
-                              deletePlayerMutation.mutate(id);
+                              const player = playersInTier.find(p => p.id === id);
+                              if (player) handleDeletePlayer(player);
                             }
                           }}
                         />
@@ -782,6 +1052,395 @@ export function TierList({ players, isLoading }: TierListProps) {
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleTierChangeConfirmation}>
               Change Tier
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Admin Authentication Dialog */}
+      <Dialog open={showAdminAuth} onOpenChange={setShowAdminAuth}>
+        <DialogContent data-testid="admin-auth-dialog">
+          <DialogHeader>
+            <DialogTitle>Admin Authentication</DialogTitle>
+            <DialogDescription>
+              Enter the admin password to access admin features.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...adminAuthForm}>
+            <form onSubmit={adminAuthForm.handleSubmit(handleAdminAuth)} className="space-y-4">
+              <FormField
+                control={adminAuthForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="Enter admin password"
+                        data-testid="admin-password-input"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAdminAuth(false)}
+                  data-testid="admin-auth-cancel"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={adminAuthMutation.isPending}
+                  data-testid="admin-auth-submit"
+                >
+                  {adminAuthMutation.isPending ? "Authenticating..." : "Login"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Player Dialog */}
+      <Dialog open={showAddPlayer} onOpenChange={setShowAddPlayer}>
+        <DialogContent data-testid="add-player-dialog">
+          <DialogHeader>
+            <DialogTitle>Add New Player</DialogTitle>
+            <DialogDescription>
+              {selectedGameMode === 'overall' 
+                ? "Add a new player and set their tiers for all game modes."
+                : `Add a new player to ${gameModes.find(m => m.key === selectedGameMode)?.name}.`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...addPlayerForm}>
+            <form onSubmit={addPlayerForm.handleSubmit(handleAddPlayer)} className="space-y-4">
+              <FormField
+                control={addPlayerForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Player Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter player name"
+                        data-testid="add-player-name-input"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {selectedGameMode === 'overall' ? (
+                // Show all game mode tier selects for overall
+                <>
+                  {gameModes.filter(m => m.key !== 'overall').map((gameMode) => {
+                    const tierField = `${gameMode.key}Tier` as keyof InsertPlayer;
+                    return (
+                      <FormField
+                        key={gameMode.key}
+                        control={addPlayerForm.control}
+                        name={tierField}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{gameMode.name} Tier</FormLabel>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger data-testid={`add-player-${gameMode.key}-tier-select`}>
+                                  <SelectValue placeholder="Select tier" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {tierOptions.map((tier) => (
+                                    <SelectItem key={tier} value={tier}>
+                                      {getTierDisplayName(tier)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    );
+                  })}
+                </>
+              ) : (
+                // Show only the current game mode tier select
+                <FormField
+                  control={addPlayerForm.control}
+                  name={`${selectedGameMode}Tier` as keyof InsertPlayer}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{gameModes.find(m => m.key === selectedGameMode)?.name} Tier</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger data-testid={`add-player-${selectedGameMode}-tier-select`}>
+                            <SelectValue placeholder="Select tier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tierOptions.map((tier) => (
+                              <SelectItem key={tier} value={tier}>
+                                {getTierDisplayName(tier)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowAddPlayer(false)}
+                  data-testid="add-player-cancel"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={addPlayerMutation.isPending}
+                  data-testid="add-player-submit"
+                >
+                  {addPlayerMutation.isPending ? "Adding..." : "Add Player"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Player Dialog (Single Game Mode) */}
+      <Dialog open={showEditPlayer} onOpenChange={setShowEditPlayer}>
+        <DialogContent data-testid="edit-player-dialog">
+          <DialogHeader>
+            <DialogTitle>Edit Player</DialogTitle>
+            <DialogDescription>
+              {selectedGameMode === 'overall' 
+                ? `Edit ${editingPlayer?.name}'s information and tiers.`
+                : `Edit ${editingPlayer?.name}'s tier for ${gameModes.find(m => m.key === selectedGameMode)?.name}.`
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...editPlayerForm}>
+            <form onSubmit={editPlayerForm.handleSubmit(handleEditPlayer)} className="space-y-4">
+              <FormField
+                control={editPlayerForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Player Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter player name"
+                        data-testid="edit-player-name-input"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {selectedGameMode !== 'overall' ? (
+                // Show only the current game mode tier select
+                <FormField
+                  control={editPlayerForm.control}
+                  name={`${selectedGameMode}Tier` as keyof InsertPlayer}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{gameModes.find(m => m.key === selectedGameMode)?.name} Tier</FormLabel>
+                      <FormControl>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <SelectTrigger data-testid={`edit-player-${selectedGameMode}-tier-select`}>
+                            <SelectValue placeholder="Select tier" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tierOptions.map((tier) => (
+                              <SelectItem key={tier} value={tier}>
+                                {getTierDisplayName(tier)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
+                // Show all game mode tier selects for overall
+                <>
+                  {gameModes.filter(m => m.key !== 'overall').map((gameMode) => {
+                    const tierField = `${gameMode.key}Tier` as keyof InsertPlayer;
+                    return (
+                      <FormField
+                        key={gameMode.key}
+                        control={editPlayerForm.control}
+                        name={tierField}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{gameMode.name} Tier</FormLabel>
+                            <FormControl>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <SelectTrigger data-testid={`edit-player-${gameMode.key}-tier-select`}>
+                                  <SelectValue placeholder="Select tier" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {tierOptions.map((tier) => (
+                                    <SelectItem key={tier} value={tier}>
+                                      {getTierDisplayName(tier)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    );
+                  })}
+                </>
+              )}
+              
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditPlayer(false)}
+                  data-testid="edit-player-cancel"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={editPlayerMutation.isPending}
+                  data-testid="edit-player-submit"
+                >
+                  {editPlayerMutation.isPending ? "Updating..." : "Update Player"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Overall Edit Player Dialog */}
+      <Dialog open={showOverallEditPlayer} onOpenChange={setShowOverallEditPlayer}>
+        <DialogContent data-testid="overall-edit-player-dialog">
+          <DialogHeader>
+            <DialogTitle>Edit Player (All Tiers)</DialogTitle>
+            <DialogDescription>
+              Edit {editingPlayer?.name}'s information and all tier rankings.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...overallEditForm}>
+            <form onSubmit={overallEditForm.handleSubmit(handleOverallEditPlayer)} className="space-y-4">
+              <FormField
+                control={overallEditForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Player Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter player name"
+                        data-testid="overall-edit-player-name-input"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {gameModes.filter(m => m.key !== 'overall').map((gameMode) => {
+                const tierField = `${gameMode.key}Tier` as keyof InsertPlayer;
+                return (
+                  <FormField
+                    key={gameMode.key}
+                    control={overallEditForm.control}
+                    name={tierField}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{gameMode.name} Tier</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger data-testid={`overall-edit-player-${gameMode.key}-tier-select`}>
+                              <SelectValue placeholder="Select tier" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {tierOptions.map((tier) => (
+                                <SelectItem key={tier} value={tier}>
+                                  {getTierDisplayName(tier)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                );
+              })}
+              
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowOverallEditPlayer(false)}
+                  data-testid="overall-edit-player-cancel"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={editPlayerMutation.isPending}
+                  data-testid="overall-edit-player-submit"
+                >
+                  {editPlayerMutation.isPending ? "Updating..." : "Update Player"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!playerToDelete} onOpenChange={(open) => !open && setPlayerToDelete(null)}>
+        <AlertDialogContent data-testid="delete-player-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Player</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{playerToDelete?.name}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="delete-player-cancel">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              data-testid="delete-player-confirm"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Player
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
