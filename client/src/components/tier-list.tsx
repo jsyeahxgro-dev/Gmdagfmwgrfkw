@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Plus, Settings, Edit, Trash2, ArrowUp, ArrowDown, RotateCcw } from "lucide-react";
 import { PlayerCard } from "./player-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { AdminPanel } from "./admin-panel";
 import { PlayerProfileModal } from "./player-profile-modal";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -101,17 +100,9 @@ interface TierListProps {
 export function TierList({ players, isLoading }: TierListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGameMode, setSelectedGameMode] = useState<GameMode>("overall");
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   // Removed activePlayer state - no longer needed without drag and drop
   
-  // Handle admin mode state from admin panel
-  const handleAdminLogin = () => {
-    setIsAdminMode(true);
-    setIsAuthenticated(true);
-  };
-  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [showTierChangeDialog, setShowTierChangeDialog] = useState(false);
   const [pendingMove, setPendingMove] = useState<{
@@ -557,7 +548,7 @@ export function TierList({ players, isLoading }: TierListProps) {
             variant={isAdminMode ? "default" : "outline"}
             onClick={() => {
               if (!isAdminMode) {
-                setShowAdminPanel(true);
+                // Admin panel removed - no action
               } else {
                 setIsAdminMode(false);
               }
@@ -572,7 +563,7 @@ export function TierList({ players, isLoading }: TierListProps) {
           {isAdminMode && (
             <div className="flex gap-2">
               <Button
-                onClick={() => setShowAdminPanel(true)}
+                onClick={() => {/* Admin panel removed - no action */}}
                 className="h-10 sm:h-9 px-3 sm:px-4 text-sm"
                 data-testid="add-player-button"
               >
@@ -747,8 +738,7 @@ export function TierList({ players, isLoading }: TierListProps) {
                           canMoveDown={index < playersInTier.length - 1}
                           onEdit={(player) => {
                             if (!isReorderMode) {
-                              setEditingPlayer(player);
-                              setShowAdminPanel(true);
+                              // Admin panel removed - editing functionality will be integrated into tier-list
                             }
                           }}
                           onDelete={(id) => {
@@ -766,27 +756,6 @@ export function TierList({ players, isLoading }: TierListProps) {
         ))}
       </Tabs>
 
-      {/* Admin Panel */}
-      {showAdminPanel && (
-        <Dialog open={showAdminPanel} onOpenChange={(open) => {
-          if (!open) {
-            setShowAdminPanel(false);
-            setEditingPlayer(null);
-          }
-        }}>
-          <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden p-0">
-            <AdminPanel 
-              onClose={() => {
-                setShowAdminPanel(false);
-                setEditingPlayer(null);
-              }}
-              onAdminLogin={handleAdminLogin}
-              editingPlayer={editingPlayer}
-              isAuthenticated={isAuthenticated}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Tier Change Confirmation Dialog */}
       <AlertDialog open={showTierChangeDialog} onOpenChange={setShowTierChangeDialog}>
