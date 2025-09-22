@@ -563,6 +563,9 @@ export class DbStorage implements IStorage {
       return false;
     }
 
+    // Extract tier name from full tierKey format (e.g., "skywars-S Tier" -> "S Tier")
+    const tierName = tierKey.includes('-') ? tierKey.split('-')[1] : tierKey;
+
     // Map tier keys to their tier values
     const tierMapping: Record<string, string[]> = {
       'S Tier': ['HT1', 'MIDT1', 'LT1'],
@@ -572,7 +575,7 @@ export class DbStorage implements IStorage {
       'D Tier': ['HT5', 'MIDT5', 'LT5']
     };
 
-    const allowedTiers = tierMapping[tierKey];
+    const allowedTiers = tierMapping[tierName];
     if (!allowedTiers) {
       return false;
     }

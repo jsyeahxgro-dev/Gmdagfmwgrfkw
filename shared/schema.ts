@@ -121,7 +121,22 @@ const gameModesForReorder = ['skywars', 'midfight', 'uhc', 'nodebuff', 'bedfight
 const tierKeysForReorder = ['S Tier', 'A Tier', 'B Tier', 'C Tier', 'D Tier'] as const;
 
 export const reorderSchema = z.object({
-  tierKey: z.enum(tierKeysForReorder),
+  tierKey: z.string().refine((value) => {
+    // Accept full format like "skywars-S Tier" or just "S Tier"
+    const parts = value.split('-');
+    if (parts.length === 1) {
+      // Plain tier name like "S Tier"
+      return tierKeysForReorder.includes(parts[0] as any);
+    } else if (parts.length === 2) {
+      // Game mode + tier like "skywars-S Tier"
+      const [gameMode, tierName] = parts;
+      return gameModesForReorder.includes(gameMode as any) && 
+             tierKeysForReorder.includes(tierName as any);
+    }
+    return false;
+  }, {
+    message: "Invalid tier key format. Expected format: 'gamemode-tier' or just 'tier'"
+  }),
   playerOrders: z.array(z.string().uuid()).min(1),
 });
 
